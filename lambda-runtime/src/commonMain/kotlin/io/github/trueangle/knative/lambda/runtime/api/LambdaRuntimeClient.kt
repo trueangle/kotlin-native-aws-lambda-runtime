@@ -11,6 +11,7 @@ import io.ktor.client.request.url
 import io.ktor.client.statement.HttpResponse
 import io.ktor.content.TextContent
 import io.ktor.http.ContentType.Application.Json
+import io.ktor.http.HttpStatusCode
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import platform.posix.getenv
@@ -32,7 +33,10 @@ class LambdaClient(private val httpClient: HttpClient) {
         }
         println("lambda api respone: $response")
 
-        require(response.status.value == 200) { "Status 200 expected for next invocation, got: $response" }
+        if (response.status != HttpStatusCode.OK) {
+            throw LambdaClientException("Status 200 expected for next invocation, got: $response")
+        }
+
         return InvocationEvent(response.body(), contextFromResponse(response))
     }
 
@@ -52,14 +56,24 @@ class LambdaClient(private val httpClient: HttpClient) {
         }
     }
 
-    suspend fun sendError(error: LambdaRuntimeError) = when (error) {
-        is LambdaRuntimeError.Init -> sendInitError(error)
-        is LambdaRuntimeError.Invocation -> sendInvocationError(error)
+    suspend fun sendError(error: LambdaRuntimeError) {
+        val response = when (error) {
+            is LambdaRuntimeError.Init -> sendInitError(error)
+            is LambdaRuntimeError.Invocation -> sendInvocationError(error)
+        }
+
+        if (response.status != HttpStatusCode.Accepted) {
+            if (response.status == HttpStatusCode.InternalServerError) {
+                throw NonRecoverableStateException()
+            }
+
+            throw LambdaClientException("Status 200 expected for next invocation, got: $response")
+        }
     }
 
     private suspend fun sendInvocationError(
         error: LambdaRuntimeError.Invocation
-    ): HttpResponse = httpClient.post {
+    ) = httpClient.post {
         val context = error.context
 
         url("${invokeUrl}/invocation/${context.requestId}/error")
@@ -75,7 +89,7 @@ class LambdaClient(private val httpClient: HttpClient) {
 
     private suspend fun sendInitError(
         error: LambdaRuntimeError.Init
-    ): HttpResponse = httpClient.post {
+    ) = httpClient.post {
         url("${invokeUrl}/init/error")
         setBody(error)
         headers {
@@ -103,3 +117,6 @@ class LambdaClient(private val httpClient: HttpClient) {
         )
     }
 }
+
+class LambdaClientException(override val message: String) : IllegalStateException()
+class NonRecoverableStateException(override val message: String = "Container error. Non-recoverable state. ") : IllegalStateException()
