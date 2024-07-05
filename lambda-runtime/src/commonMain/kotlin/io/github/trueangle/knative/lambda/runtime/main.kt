@@ -1,9 +1,11 @@
 package io.github.trueangle.knative.lambda.runtime
 
-fun main() = LambdaRuntime.run(SampleLambda())
+import io.github.trueangle.knative.lambda.runtime.api.Context
 
-private class SampleLambda : LambdaHandler {
-    override fun handleRequest(payload: String, context: EventContext): String {
+fun main() = LambdaRuntime.run()
+
+class SampleLambda : LambdaHandler {
+    override fun handleRequest(payload: String, context: Context): String {
         println("Invoke lambda handler\n payload: $payload\n context: $context")
 
         return """ {
@@ -16,4 +18,5 @@ private class SampleLambda : LambdaHandler {
               }
     """.trimIndent()
     }
+
 }

@@ -1,5 +1,4 @@
 plugins {
-    alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
     application
 }
@@ -12,7 +11,6 @@ application {
 }
 
 dependencies {
-    
     implementation(libs.logback)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
