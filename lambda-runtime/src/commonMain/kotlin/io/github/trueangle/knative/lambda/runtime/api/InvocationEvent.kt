@@ -1,12 +1,12 @@
 package io.github.trueangle.knative.lambda.runtime.api
 
-class InvocationEvent(val payload: String, val context: Context)
+class InvocationEvent(val body: String, val context: Context)
 
 data class Context(
     /**
      * The Lambda request ID associated with the request.
      */
-    val requestId: String,
+    val awsRequestId: String,
     /**
      * The X-Ray tracing ID.
      */

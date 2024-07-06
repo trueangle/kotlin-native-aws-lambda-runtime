@@ -1,5 +1,6 @@
 package io.github.trueangle.knative.lambda.runtime.api
 
+import io.github.trueangle.knative.lambda.runtime.api.dto.toDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.timeout
@@ -16,8 +17,6 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import platform.posix.getenv
 
-// add hooks and handle init error
-// https://docs.aws.amazon.com/lambda/latest/dg/runtimes-custom.html
 @OptIn(ExperimentalForeignApi::class)
 class LambdaClient(private val httpClient: HttpClient) {
     private val lambdaEnvApiEndpoint = requireNotNull(getenv("AWS_LAMBDA_RUNTIME_API")?.toKString())
@@ -44,7 +43,7 @@ class LambdaClient(private val httpClient: HttpClient) {
         println("sendResponse from handler: $body")
 
         return httpClient.post {
-            url("${invokeUrl}/invocation/${event.requestId}/response")
+            url("${invokeUrl}/invocation/${event.awsRequestId}/response")
             headers {
                 if (event.xrayTracingId != null) {
                     append("Lambda-Runtime-Trace-Id", event.xrayTracingId)
@@ -76,8 +75,8 @@ class LambdaClient(private val httpClient: HttpClient) {
     ) = httpClient.post {
         val context = error.context
 
-        url("${invokeUrl}/invocation/${context.requestId}/error")
-        setBody(error)
+        url("${invokeUrl}/invocation/${context.awsRequestId}/error")
+        setBody(error.toDto())
         headers {
             append("Lambda-Runtime-Function-Error-Type", error.type)
             if (context.xrayTracingId != null) {
@@ -91,7 +90,7 @@ class LambdaClient(private val httpClient: HttpClient) {
         error: LambdaRuntimeError.Init
     ) = httpClient.post {
         url("${invokeUrl}/init/error")
-        setBody(error)
+        setBody(error.toDto())
         headers {
             append("Lambda-Runtime-Function-Error-Type", error.type)
         }
@@ -108,7 +107,7 @@ class LambdaClient(private val httpClient: HttpClient) {
         val xrayTraceId = response.headers["Lambda-Runtime-Trace-Id"]
 
         return Context(
-            requestId = requestId,
+            awsRequestId = requestId,
             deadlineTimeInMs = deadlineTimeInMs,
             invokedFunctionArn = invokedFunctionArn,
             clientContext = clientContext,
