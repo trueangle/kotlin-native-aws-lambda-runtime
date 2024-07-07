@@ -10,11 +10,17 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.HttpResponse
-import io.ktor.content.TextContent
 import io.ktor.http.ContentType.Application.Json
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.ChannelWriterContent
+import io.ktor.http.contentType
+import io.ktor.util.reflect.TypeInfo
+import io.ktor.utils.io.writeFully
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onCompletion
 import platform.posix.getenv
 
 @OptIn(ExperimentalForeignApi::class)
@@ -22,12 +28,12 @@ class LambdaClient(private val httpClient: HttpClient) {
     private val lambdaEnvApiEndpoint = requireNotNull(getenv("AWS_LAMBDA_RUNTIME_API")?.toKString())
     private val invokeUrl = "http://${lambdaEnvApiEndpoint}/2018-06-01/runtime"
 
-    suspend fun retrieveNextEvent(): InvocationEvent {
+    suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): InvocationEvent<T> {
         println("RetrieveNextEvent")
         val response = httpClient.get {
             url("${invokeUrl}/invocation/next")
             timeout {
-                requestTimeoutMillis = 60 * 1000 * 30
+                requestTimeoutMillis = 60 * 1000 * 30 // todo
             }
         }
         println("lambda api respone: $response")
@@ -36,14 +42,15 @@ class LambdaClient(private val httpClient: HttpClient) {
             throw LambdaClientException("Status 200 expected for next invocation, got: $response")
         }
 
-        return InvocationEvent(response.body(), contextFromResponse(response))
+        return InvocationEvent(response.body(bodyType), contextFromResponse(response))
     }
 
-    suspend fun sendResponse(event: Context, body: String): HttpResponse {
+    suspend fun <T> sendResponse(event: Context, body: T, bodyType: TypeInfo): HttpResponse {
         println("sendResponse from handler: $body")
 
         return httpClient.post {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")
+            contentType(Json)
             headers {
                 if (event.xrayTracingId != null) {
                     append("Lambda-Runtime-Trace-Id", event.xrayTracingId)
@@ -51,8 +58,39 @@ class LambdaClient(private val httpClient: HttpClient) {
                 }
             }
 
-            setBody(TextContent(body, Json))
+            // todo Do we need to set body type directly?
+            setBody(body, bodyType)
         }
+    }
+
+    // todo exceptions, buffer overflow
+    // Flow or Channel?
+    suspend fun streamResponse(event: Context, streamingBody: Flow<ByteArray>): HttpResponse = httpClient.post {
+        url("${invokeUrl}/invocation/${event.awsRequestId}/response")
+        headers {
+            if (event.xrayTracingId != null) {
+                append("Lambda-Runtime-Trace-Id", event.xrayTracingId)
+                append("_X_AMZN_TRACE_ID", event.xrayTracingId)
+            }
+
+            append(HttpHeaders.TransferEncoding, "chunked")
+            append("Lambda-Runtime-Function-Response-Mode", "streaming")
+        }
+
+        setBody(
+            ChannelWriterContent(
+                body = {
+                    streamingBody
+                        .onCompletion {
+                            close(null)
+                        }
+                        .collect {
+                            writeFully(it)
+                        }
+                },
+                contentType = Json
+            )
+        )
     }
 
     suspend fun sendError(error: LambdaRuntimeError) {
@@ -76,7 +114,8 @@ class LambdaClient(private val httpClient: HttpClient) {
         val context = error.context
 
         url("${invokeUrl}/invocation/${context.awsRequestId}/error")
-        setBody(error.toDto())
+        contentType(Json)
+
         headers {
             append("Lambda-Runtime-Function-Error-Type", error.type)
             if (context.xrayTracingId != null) {
@@ -84,6 +123,8 @@ class LambdaClient(private val httpClient: HttpClient) {
                 append("_X_AMZN_TRACE_ID", context.xrayTracingId)
             }
         }
+
+        setBody(error.toDto())
     }
 
     private suspend fun sendInitError(
@@ -92,6 +133,7 @@ class LambdaClient(private val httpClient: HttpClient) {
         url("${invokeUrl}/init/error")
         setBody(error.toDto())
         headers {
+            contentType(Json)
             append("Lambda-Runtime-Function-Error-Type", error.type)
         }
     }

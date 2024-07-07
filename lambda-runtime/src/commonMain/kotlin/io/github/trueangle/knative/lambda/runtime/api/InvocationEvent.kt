@@ -1,6 +1,6 @@
 package io.github.trueangle.knative.lambda.runtime.api
 
-class InvocationEvent(val body: String, val context: Context)
+class InvocationEvent<T>(val body: T, val context: Context)
 
 data class Context(
     /**
