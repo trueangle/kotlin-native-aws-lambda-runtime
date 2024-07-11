@@ -31,20 +31,23 @@ class LambdaClient(private val httpClient: HttpClient) {
     private val invokeUrl = "http://${lambdaEnvApiEndpoint}/2018-06-01/runtime"
 
     suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): InvocationEvent<T> {
-        println("RetrieveNextEvent")
         val response = httpClient.get {
             url("${invokeUrl}/invocation/next")
             timeout {
                 requestTimeoutMillis = 60 * 1000 * 30 // todo
             }
         }
-        println("lambda api respone: $response")
 
-        if (response.status != HttpStatusCode.OK) {
-            throw LambdaClientException("Status 200 is expected for next invocation, got: $response")
+        println("lambda api respone: ${response.body<String>()}")
+
+        val context = contextFromResponseHeaders(response)
+        val body = try {
+            response.body(bodyType) as T
+        } catch (e: Exception) {
+            throw BodyParseException(e, context)
         }
 
-        return InvocationEvent(response.body(bodyType), contextFromResponse(response))
+        return InvocationEvent(body, context)
     }
 
     suspend fun <T> sendResponse(event: Context, body: T, bodyType: TypeInfo): HttpResponse {
@@ -106,7 +109,7 @@ class LambdaClient(private val httpClient: HttpClient) {
                 throw NonRecoverableStateException()
             }
 
-            throw LambdaClientException("Status 200 expected for next invocation, got: $response")
+            throw LambdaClientException("Status 200 expected for next invocation, got: ${response.body<String>()}")
         }
     }
 
@@ -140,7 +143,7 @@ class LambdaClient(private val httpClient: HttpClient) {
         }
     }
 
-    private fun contextFromResponse(response: HttpResponse): Context {
+    private fun contextFromResponseHeaders(response: HttpResponse): Context {
         val requestId = requireNotNull(response.headers["Lambda-Runtime-Aws-Request-Id"])
         val deadlineTimeInMs =
             requireNotNull(response.headers["Lambda-Runtime-Deadline-Ms"]).toLong()
@@ -162,4 +165,5 @@ class LambdaClient(private val httpClient: HttpClient) {
 }
 
 class LambdaClientException(override val message: String) : IllegalStateException()
+class BodyParseException(override val cause: Exception, val context: Context) : IllegalStateException()
 class NonRecoverableStateException(override val message: String = "Container error. Non-recoverable state. ") : IllegalStateException()

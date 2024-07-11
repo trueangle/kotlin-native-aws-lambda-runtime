@@ -16,6 +16,13 @@ sealed interface LambdaRuntimeError {
     sealed interface Invocation : LambdaRuntimeError {
         val context: Context
 
+        data class EventBodyParseError(
+            override val context: Context,
+            override val message: String,
+            override val type: String = "Runtime.InvalidEventBodyError",
+            override val stackTrace: String
+        ) : Invocation
+
         data class HandlerError(
             override val context: Context,
             override val message: String,
@@ -36,6 +43,12 @@ fun Throwable.asHandlerError(context: Context) = LambdaRuntimeError.Invocation.H
     context = context,
     message = message.orEmpty(),
     stackTrace = stackTraceToString()
+)
+
+fun BodyParseException.asEventBodyParseError() = LambdaRuntimeError.Invocation.HandlerError(
+    context = context,
+    message = cause.message.orEmpty(),
+    stackTrace = cause.stackTraceToString()
 )
 
 fun Throwable.asUnknownInvocationError(context: Context) = LambdaRuntimeError.Invocation.Unknown(

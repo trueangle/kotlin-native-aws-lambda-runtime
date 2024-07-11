@@ -1,7 +1,9 @@
 package io.github.trueangle.knative.lambda.runtime
 
+import io.github.trueangle.knative.lambda.runtime.api.BodyParseException
 import io.github.trueangle.knative.lambda.runtime.api.LambdaClient
 import io.github.trueangle.knative.lambda.runtime.api.NonRecoverableStateException
+import io.github.trueangle.knative.lambda.runtime.api.asEventBodyParseError
 import io.github.trueangle.knative.lambda.runtime.api.asHandlerError
 import io.github.trueangle.knative.lambda.runtime.api.asInitError
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
@@ -30,17 +32,31 @@ object LambdaRuntime {
         val handler = try {
             initHandler()
         } catch (e: Exception) {
-            client.sendError(e.asInitError())
+            e.printStackTrace()
 
+            client.sendError(e.asInitError())
             exitProcess(1)
         }
 
         val inputTypeInfo = typeInfo<I>()
         val outputTypeInfo = typeInfo<O>()
 
+        // todo refactor error handle
         try {
             while (true) {
-                val event = client.retrieveNextEvent<I>(inputTypeInfo)
+                val event = try {
+                    client.retrieveNextEvent<I>(inputTypeInfo)
+                } catch (e: BodyParseException) {
+                    client.sendError(e.asEventBodyParseError())
+
+                    break
+                } catch (e: Exception) {
+                    e.printStackTrace()
+
+                    client.sendError(e.asInitError())
+                    exitProcess(1)
+                }
+
                 try {
                     if (handler is LambdaStreamHandler) {
                         val resultStream = handler.handleRequest(event.body, event.context)
@@ -50,16 +66,15 @@ object LambdaRuntime {
                         client.sendResponse(event.context, result, outputTypeInfo)
                     }
                 } catch (e: Exception) {
+                    e.printStackTrace()
+
                     client.sendError(e.asHandlerError(event.context))
 
                     break
                 }
             }
         } catch (e: NonRecoverableStateException) {
-            exitProcess(1)
-        } catch (e: Exception) {
-            client.sendError(e.asInitError())
-
+            e.printStackTrace()
             exitProcess(1)
         } finally {
             httpClient.close()
