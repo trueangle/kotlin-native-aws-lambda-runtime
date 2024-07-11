@@ -1,19 +1,23 @@
 plugins {
-    alias(libs.plugins.ktor)
-    application
+    alias(libs.plugins.kotlin.multiplatform)
 }
 
-group = "com.github.trueangle.knative.lambda.runtime.sample"
-version = "1.0.0"
-application {
-    mainClass.set("com.github.trueangle.knative.lambda.runtime.sample.ApplicationKt")
-    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=${extra["io.ktor.development"] ?: "false"}")
-}
+// todo is it a right way to specify main entry point for linux64?
+kotlin {
 
-dependencies {
-    implementation(libs.logback)
-    implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.netty)
-    testImplementation(libs.ktor.server.tests)
-    testImplementation(libs.kotlin.test.junit)
+    listOf(
+        linuxX64()
+    ).forEach {
+        it.binaries {
+            executable {
+                entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main"
+            }
+        }
+    }
+
+    sourceSets {
+        nativeMain.dependencies {
+            implementation(projects.lambdaRuntime)
+        }
+    }
 }

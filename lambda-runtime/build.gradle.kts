@@ -5,11 +5,11 @@ plugins {
 
 kotlin {
     linuxX64 {
-        binaries {
+     /*   binaries {
             executable {
                 entryPoint = "io.github.trueangle.knative.lambda.runtime.MainKt.main"
             }
-        }
+        }*/
     }
 
     sourceSets {

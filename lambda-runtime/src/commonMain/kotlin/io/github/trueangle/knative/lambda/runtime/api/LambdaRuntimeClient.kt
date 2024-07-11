@@ -25,7 +25,9 @@ import platform.posix.getenv
 
 @OptIn(ExperimentalForeignApi::class)
 class LambdaClient(private val httpClient: HttpClient) {
-    private val lambdaEnvApiEndpoint = requireNotNull(getenv("AWS_LAMBDA_RUNTIME_API")?.toKString())
+    private val lambdaEnvApiEndpoint = requireNotNull(getenv("AWS_LAMBDA_RUNTIME_API")?.toKString()) {
+        "Can't find AWS_LAMBDA_RUNTIME_API env variable"
+    }
     private val invokeUrl = "http://${lambdaEnvApiEndpoint}/2018-06-01/runtime"
 
     suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): InvocationEvent<T> {
@@ -39,7 +41,7 @@ class LambdaClient(private val httpClient: HttpClient) {
         println("lambda api respone: $response")
 
         if (response.status != HttpStatusCode.OK) {
-            throw LambdaClientException("Status 200 expected for next invocation, got: $response")
+            throw LambdaClientException("Status 200 is expected for next invocation, got: $response")
         }
 
         return InvocationEvent(response.body(bodyType), contextFromResponse(response))
