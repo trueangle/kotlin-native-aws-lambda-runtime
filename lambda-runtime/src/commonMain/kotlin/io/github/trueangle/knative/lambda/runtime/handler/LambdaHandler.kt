@@ -7,4 +7,4 @@ interface LambdaHandler<I, O> {
     fun handleRequest(input: I, context: Context): O
 }
 
-interface LambdaStreamHandler : LambdaHandler<ByteArray, Flow<ByteArray>>
+interface LambdaStreamHandler : LambdaHandler<ByteArray, Flow<String>>

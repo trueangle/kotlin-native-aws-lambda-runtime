@@ -60,11 +60,13 @@ object LambdaRuntime {
                 try {
                     if (handler is LambdaStreamHandler) {
                         val resultStream = handler.handleRequest(event.body, event.context)
-                        client.streamResponse(event.context, resultStream as Flow<ByteArray>)
+                        client.streamResponse(event.context, resultStream as Flow<String>)
                     } else {
                         val result = handler.handleRequest(event.body, event.context)
                         client.sendResponse(event.context, result, outputTypeInfo)
                     }
+                } catch (e: NonRecoverableStateException) {
+                    throw e
                 } catch (e: Exception) {
                     e.printStackTrace()
 
