@@ -4,36 +4,32 @@ import io.github.trueangle.knative.lambda.runtime.api.dto.toDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.timeout
-import io.ktor.client.request.forms.ChannelProvider
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
-import io.ktor.client.request.preparePost
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsChannel
-import io.ktor.http.ContentType
 import io.ktor.http.ContentType.Application.Json
-import io.ktor.http.HttpHeaders
+import io.ktor.http.ContentType.Application.OctetStream
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.ChannelWriterContent
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.contentType
+import io.ktor.util.encodeBase64
 import io.ktor.util.reflect.TypeInfo
+import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
-import io.ktor.utils.io.close
-import io.ktor.utils.io.core.buildPacket
-import io.ktor.utils.io.writeFully
+import io.ktor.utils.io.copyTo
+import io.ktor.utils.io.readBuffer
+import io.ktor.utils.io.writeBuffer
+import io.ktor.utils.io.writeSource
 import io.ktor.utils.io.writeStringUtf8
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.onCompletion
-import platform.posix.fabs
 import platform.posix.getenv
+import kotlin.time.Duration.Companion.minutes
 
 @OptIn(ExperimentalForeignApi::class)
 class LambdaClient(private val httpClient: HttpClient) {
@@ -82,67 +78,37 @@ class LambdaClient(private val httpClient: HttpClient) {
         return validateResponse(response)
     }
 
-    // todo exceptions, buffer overflow
-    // Flow or Channel?
-    suspend fun streamResponse(event: Context, streamingBody: Flow<String>): HttpResponse {
+    suspend fun streamResponse(event: Context, byteChannel: ByteReadChannel): HttpResponse {
         val response = httpClient.post {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")
+
+            timeout {
+                requestTimeoutMillis = 30.minutes.inWholeMilliseconds // todo
+            }
+
             headers {
                 if (event.xrayTracingId != null) {
                     append("Lambda-Runtime-Trace-Id", event.xrayTracingId)
                     append("_X_AMZN_TRACE_ID", event.xrayTracingId)
                 }
 
-                //append(HttpHeaders.TransferEncoding, "chunked")
                 append("Lambda-Runtime-Function-Response-Mode", "streaming")
+                append("Trailer", "Lambda-Runtime-Function-Error-Type")
+                append("Trailer", "Lambda-Runtime-Function-Error-Body")
             }
 
-            setBody(object : OutgoingContent.WriteChannelContent() {
-                override suspend fun writeTo(channel: ByteWriteChannel) {
-                    /*streamingBody
-                        .onCompletion {
-                            channel.close(null)
-                        }
-                        .collect {
-                            println("write to stream: $it")
-                            channel.writeStringUtf8(it)
-                        }
-
-                    channel.close()*/
-
-                    repeat(1024) { i ->
-                        channel.writeStringUtf8(i.toString() + "\n")
-                        channel.writeStringUtf8("7\r\n")
-                        channel.writeStringUtf8("Hello, \r\n")
-
-                        channel.writeStringUtf8("6\r\n")
-                        channel.writeStringUtf8("world!\r\n")
+            setBody(
+                ChannelWriterContent(body = {
+                    try {
+                        byteChannel.copyTo(this)
+                    } catch (e: Exception) {
+                        writeStringUtf8(e.toTrailer())
                     }
-
-                    channel.writeStringUtf8("0\r\n\r\n") // End of chunks
-
-                    channel.close()
-                }
-            })
-
-            /*setBody(
-                ChannelWriterContent(
-                    body = {
-                        *//*streamingBody
-                            .onCompletion {
-                                close(null)
-                            }
-                            .collect {
-                                println("write to stream: $it")
-                                writeStringUtf8(it)
-                            }*//*
-                    },
-                    contentType = ContentType.Text.Plain,
-                )
-            )*/
+                }, contentType = OctetStream)
+            )
         }
 
-        return validateResponse(response)
+        return response
     }
 
     suspend fun sendError(error: LambdaRuntimeError) {
@@ -217,6 +183,9 @@ class LambdaClient(private val httpClient: HttpClient) {
         )
     }
 }
+
+private fun Throwable.toTrailer(): String =
+    "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
 
 class LambdaClientException(override val message: String) : IllegalStateException()
 class BodyParseException(override val cause: Exception, val context: Context) : IllegalStateException()

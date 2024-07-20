@@ -5,7 +5,7 @@ import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import kotlinx.serialization.Serializable
 
 class ObjectBodyLambdaHandler : LambdaHandler<Request, Response> {
-    override fun handleRequest(input: Request, context: Context): Response {
+    override suspend fun handleRequest(input: Request, context: Context): Response {
         println("Invoke lambda handler\n payload: $input\n context: $context")
 
         return Response(body = input.question + "\n answer is Hello world")

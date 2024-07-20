@@ -5,7 +5,7 @@ import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.ktor.utils.io.core.toByteArray
 
 class ByteBodyLambdaHandler : LambdaHandler<ByteArray, ByteArray> {
-    override fun handleRequest(input: ByteArray, context: Context): ByteArray {
+    override suspend fun handleRequest(input: ByteArray, context: Context): ByteArray {
         println("Invoke lambda handler\n payload: $input\n context: $context")
 
         return """ {

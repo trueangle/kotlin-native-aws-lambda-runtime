@@ -12,8 +12,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.reflect.typeInfo
+import io.ktor.utils.io.ByteChannel
+import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
@@ -21,10 +25,15 @@ import kotlin.system.exitProcess
 object LambdaRuntime {
     @Suppress("UNCHECKED_CAST")
     inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
+        println("Start runtime")
+
         val httpClient = HttpClient(CIO) {
             install(HttpTimeout)
             install(ContentNegotiation) {
                 json()
+            }
+            install(Logging) {
+                level = LogLevel.ALL
             }
         }
         val client = LambdaClient(httpClient)
@@ -59,8 +68,8 @@ object LambdaRuntime {
 
                 try {
                     if (handler is LambdaStreamHandler) {
-                        val resultStream = handler.handleRequest(event.body, event.context)
-                        client.streamResponse(event.context, resultStream as Flow<String>)
+                        val result = handler.handleRequest(event.body, event.context)
+                        client.streamResponse(event.context, result as ByteReadChannel)
                     } else {
                         val result = handler.handleRequest(event.body, event.context)
                         client.sendResponse(event.context, result, outputTypeInfo)

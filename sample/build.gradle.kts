@@ -21,5 +21,10 @@ kotlin {
             implementation(projects.lambdaRuntime)
             implementation(libs.kotlin.serialization.json)
         }
+
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlin.coroutines.test)
+        }
     }
 }
