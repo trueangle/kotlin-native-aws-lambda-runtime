@@ -6,6 +6,7 @@ import io.github.trueangle.knative.lambda.runtime.api.NonRecoverableStateExcepti
 import io.github.trueangle.knative.lambda.runtime.api.asEventBodyParseError
 import io.github.trueangle.knative.lambda.runtime.api.asHandlerError
 import io.github.trueangle.knative.lambda.runtime.api.asInitError
+import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
 import io.ktor.client.HttpClient
@@ -14,11 +15,12 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.http.content.OutgoingContent.WriteChannelContent
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.encodeBase64
 import io.ktor.util.reflect.typeInfo
-import io.ktor.utils.io.ByteChannel
-import io.ktor.utils.io.ByteReadChannel
-import kotlinx.coroutines.flow.Flow
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
@@ -67,11 +69,20 @@ object LambdaRuntime {
                 }
 
                 try {
-                    if (handler is LambdaStreamHandler) {
-                        val result = handler.handleRequest(event.body, event.context)
-                        client.streamResponse(event.context, result as ByteReadChannel)
+                    if (handler is LambdaStreamHandler<I, *>) {
+                        val outgoingContent = object : WriteChannelContent() {
+                            override suspend fun writeTo(channel: ByteWriteChannel) {
+                                try {
+                                    handler.handleRequest(event.body, channel, event.context)
+                                } catch (e: Exception) {
+                                    channel.writeStringUtf8(e.toTrailer())
+                                }
+                            }
+                        }
+
+                        client.streamResponse(event.context, outgoingContent)
                     } else {
-                        val result = handler.handleRequest(event.body, event.context)
+                        val result = (handler as LambdaBufferedHandler<I, O>).handleRequest(event.body, event.context)
                         client.sendResponse(event.context, result, outputTypeInfo)
                     }
                 } catch (e: NonRecoverableStateException) {
@@ -92,3 +103,7 @@ object LambdaRuntime {
         }
     }
 }
+
+@PublishedApi
+internal fun Throwable.toTrailer(): String =
+    "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"

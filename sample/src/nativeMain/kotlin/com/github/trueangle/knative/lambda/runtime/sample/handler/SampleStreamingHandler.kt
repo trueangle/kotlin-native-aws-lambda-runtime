@@ -20,30 +20,34 @@ import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 
-class SampleStreamingHandler : LambdaStreamHandler {
-    override suspend fun handleRequest(input: ByteArray, context: Context): ByteReadChannel {
+class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> {
+/*    override suspend fun handleRequest(input: ByteArray, context: Context): ByteReadChannel {
 
         //val fileChanel = ByteReadChannel(SystemFileSystem.source(Path("o.json")).buffered())
 
-        /*
+        *//*
                 println("create channel")
                 val outputChannel = ByteChannel(true)
                 ByteReadChannel("asdasdads").copyTo(outputChannel)
-        */
+        *//*
         println("create channel")
-        /*    return ByteChannel(true).apply {
+        *//*    return ByteChannel(true).apply {
                 //writeSource(SystemFileSystem.source(Path("o.json")).buffered())
 
-            }*/
+            }*//*
 
-        /*    GlobalScope.writer(currentCoroutineContext(), true) {
+        *//*    GlobalScope.writer(currentCoroutineContext(), true) {
                 channel.writeSource(SystemFileSystem.source(Path("o.json")).buffered())
-            }.channel*/
+            }.channel*//*
 
         //return ByteReadChannel(SystemFileSystem.source(Path("o.json")).buffered())
 
         return GlobalScope.writer(currentCoroutineContext(), true) {
             channel.writeSource(SystemFileSystem.source(Path("o.json")).buffered())
         }.channel
+    }*/
+
+    override suspend fun handleRequest(input: ByteArray, output: ByteWriteChannel, context: Context) {
+        ByteReadChannel(SystemFileSystem.source(Path("o.json")).buffered()).copyTo(output)
     }
 }

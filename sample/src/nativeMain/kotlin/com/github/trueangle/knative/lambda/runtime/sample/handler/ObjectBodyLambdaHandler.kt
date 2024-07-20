@@ -1,10 +1,11 @@
 package com.github.trueangle.knative.lambda.runtime.sample.handler
 
 import io.github.trueangle.knative.lambda.runtime.api.Context
+import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import kotlinx.serialization.Serializable
 
-class ObjectBodyLambdaHandler : LambdaHandler<Request, Response> {
+class ObjectBodyLambdaHandler : LambdaBufferedHandler<Request, Response> {
     override suspend fun handleRequest(input: Request, context: Context): Response {
         println("Invoke lambda handler\n payload: $input\n context: $context")
 

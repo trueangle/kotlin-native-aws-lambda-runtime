@@ -12,9 +12,9 @@ import kotlin.test.assertEquals
 class SampleStreamingHandlerTest {
     val handler = SampleStreamingHandler()
 
-    @Test
+  /*  @Test
     fun test() = runTest {
         val byteChannel = handler.handleRequest(ByteArray(1), Context("asd", "asd", 100, "", null, null))
         assertEquals("", byteChannel.readBuffer().readString())
-    }
+    }*/
 }

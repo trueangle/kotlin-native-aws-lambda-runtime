@@ -78,7 +78,7 @@ class LambdaClient(private val httpClient: HttpClient) {
         return validateResponse(response)
     }
 
-    suspend fun streamResponse(event: Context, byteChannel: ByteReadChannel): HttpResponse {
+    suspend fun streamResponse(event: Context, outgoingContent: OutgoingContent): HttpResponse {
         val response = httpClient.post {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")
 
@@ -97,15 +97,7 @@ class LambdaClient(private val httpClient: HttpClient) {
                 append("Trailer", "Lambda-Runtime-Function-Error-Body")
             }
 
-            setBody(
-                ChannelWriterContent(body = {
-                    try {
-                        byteChannel.copyTo(this)
-                    } catch (e: Exception) {
-                        writeStringUtf8(e.toTrailer())
-                    }
-                }, contentType = OctetStream)
-            )
+            setBody(outgoingContent)
         }
 
         return response
@@ -183,9 +175,6 @@ class LambdaClient(private val httpClient: HttpClient) {
         )
     }
 }
-
-private fun Throwable.toTrailer(): String =
-    "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
 
 class LambdaClientException(override val message: String) : IllegalStateException()
 class BodyParseException(override val cause: Exception, val context: Context) : IllegalStateException()
