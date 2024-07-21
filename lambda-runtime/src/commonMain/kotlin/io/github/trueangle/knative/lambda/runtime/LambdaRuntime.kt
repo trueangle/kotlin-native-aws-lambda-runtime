@@ -23,7 +23,6 @@ import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
 object LambdaRuntime {
-    @Suppress("UNCHECKED_CAST")
     inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
         println("Start runtime")
 
@@ -69,7 +68,7 @@ object LambdaRuntime {
                 try {
                     if (handler is LambdaStreamHandler) {
                         val result = handler.handleRequest(event.body, event.context)
-                        client.streamResponse(event.context, result as ByteReadChannel)
+                        client.streamResponse(event.context, result)
                     } else {
                         val result = handler.handleRequest(event.body, event.context)
                         client.sendResponse(event.context, result, outputTypeInfo)

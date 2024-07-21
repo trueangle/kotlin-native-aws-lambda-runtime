@@ -10,4 +10,4 @@ interface LambdaHandler<I, O> {
     suspend fun handleRequest(input: I, context: Context): O
 }
 
-interface LambdaStreamHandler : LambdaHandler<ByteArray, ByteReadChannel>
+interface LambdaStreamHandler<I> : LambdaHandler<I, ByteReadChannel>
