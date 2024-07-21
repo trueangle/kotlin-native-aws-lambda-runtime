@@ -70,20 +70,11 @@ object LambdaRuntime {
 
                 try {
                     if (handler is LambdaStreamHandler<I, *>) {
-                        val outgoingContent = object : WriteChannelContent() {
-                            override suspend fun writeTo(channel: ByteWriteChannel) {
-                                try {
-                                    handler.handleRequest(event.body, channel, event.context)
-                                } catch (e: Exception) {
-                                    channel.writeStringUtf8(e.toTrailer())
-                                }
-                            }
-                        }
-
-                        client.streamResponse(event.context, outgoingContent)
+                        val response = streamingResponse { handler.handleRequest(event.body, it, event.context) }
+                        client.streamResponse(event.context, response)
                     } else {
-                        val result = (handler as LambdaBufferedHandler<I, O>).handleRequest(event.body, event.context)
-                        client.sendResponse(event.context, result, outputTypeInfo)
+                        val response = (handler as LambdaBufferedHandler<I, O>).handleRequest(event.body, event.context)
+                        client.sendResponse(event.context, response, outputTypeInfo)
                     }
                 } catch (e: NonRecoverableStateException) {
                     throw e
@@ -100,6 +91,17 @@ object LambdaRuntime {
             exitProcess(1)
         } finally {
             httpClient.close()
+        }
+    }
+}
+
+@PublishedApi
+internal inline fun streamingResponse(crossinline handler: suspend (ByteWriteChannel) -> Unit) = object : WriteChannelContent() {
+    override suspend fun writeTo(channel: ByteWriteChannel) {
+        try {
+            handler(channel)
+        } catch (e: Exception) {
+            channel.writeStringUtf8(e.toTrailer())
         }
     }
 }
