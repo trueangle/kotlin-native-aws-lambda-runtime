@@ -104,8 +104,7 @@ internal inline fun streamingResponse(crossinline handler: suspend (ByteWriteCha
             channel.writeStringUtf8(e.toTrailer())
         }
     }
-}
 
-@PublishedApi
-internal fun Throwable.toTrailer(): String =
-    "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
+    private fun Throwable.toTrailer(): String =
+        "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
+}
