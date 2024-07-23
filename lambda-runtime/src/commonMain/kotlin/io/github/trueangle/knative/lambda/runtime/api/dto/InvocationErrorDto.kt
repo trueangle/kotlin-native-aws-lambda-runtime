@@ -1,6 +1,6 @@
 package io.github.trueangle.knative.lambda.runtime.api.dto
 
-import io.github.trueangle.knative.lambda.runtime.api.LambdaRuntimeError
+import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -14,4 +14,4 @@ data class InvocationErrorDto(
     val stackTrace: String
 )
 
-fun LambdaRuntimeError.toDto() = InvocationErrorDto(message = message, type = type, stackTrace = stackTrace)
+fun LambdaRuntimeException.toDto() = InvocationErrorDto(message = message, type = type, stackTrace = stackTrace)

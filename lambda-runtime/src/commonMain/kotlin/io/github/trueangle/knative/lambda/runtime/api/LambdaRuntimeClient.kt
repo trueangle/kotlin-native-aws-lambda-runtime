@@ -1,5 +1,12 @@
 package io.github.trueangle.knative.lambda.runtime.api
 
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.BadRequestException
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.CommonException
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.ForbiddenException
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.NonRecoverableStateException
+import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException
+import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.EventBodyParseException
 import io.github.trueangle.knative.lambda.runtime.api.dto.toDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -11,21 +18,10 @@ import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType.Application.Json
-import io.ktor.http.ContentType.Application.OctetStream
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.ChannelWriterContent
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.contentType
-import io.ktor.util.encodeBase64
 import io.ktor.util.reflect.TypeInfo
-import io.ktor.utils.io.ByteChannel
-import io.ktor.utils.io.ByteReadChannel
-import io.ktor.utils.io.ByteWriteChannel
-import io.ktor.utils.io.copyTo
-import io.ktor.utils.io.readBuffer
-import io.ktor.utils.io.writeBuffer
-import io.ktor.utils.io.writeSource
-import io.ktor.utils.io.writeStringUtf8
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import platform.posix.getenv
@@ -46,13 +42,11 @@ class LambdaClient(private val httpClient: HttpClient) {
             }
         }
 
-        println("lambda api respone: ${response.body<String>()}")
-
         val context = contextFromResponseHeaders(response)
         val body = try {
             response.body(bodyType) as T
         } catch (e: Exception) {
-            throw BodyParseException(e, context)
+            throw EventBodyParseException(cause = e, context = context)
         }
 
         return InvocationEvent(body, context)
@@ -71,7 +65,6 @@ class LambdaClient(private val httpClient: HttpClient) {
                 }
             }
 
-            // todo Do we need to set body type directly?
             setBody(body, bodyType)
         }
 
@@ -103,17 +96,17 @@ class LambdaClient(private val httpClient: HttpClient) {
         return response
     }
 
-    suspend fun sendError(error: LambdaRuntimeError) {
+    suspend fun sendError(error: LambdaRuntimeException) {
         val response = when (error) {
-            is LambdaRuntimeError.Init -> sendInitError(error)
-            is LambdaRuntimeError.Invocation -> sendInvocationError(error)
+            is LambdaRuntimeException.Init -> sendInitError(error)
+            is LambdaRuntimeException.Invocation -> sendInvocationError(error)
         }
 
         validateResponse(response)
     }
 
     private suspend fun sendInvocationError(
-        error: LambdaRuntimeError.Invocation
+        error: LambdaRuntimeException.Invocation
     ) = httpClient.post {
         val context = error.context
 
@@ -132,7 +125,7 @@ class LambdaClient(private val httpClient: HttpClient) {
     }
 
     private suspend fun sendInitError(
-        error: LambdaRuntimeError.Init
+        error: LambdaRuntimeException.Init
     ) = httpClient.post {
         url("${invokeUrl}/init/error")
         setBody(error.toDto())
@@ -142,14 +135,16 @@ class LambdaClient(private val httpClient: HttpClient) {
         }
     }
 
-    //todo handle 403 properly
     private suspend fun validateResponse(response: HttpResponse): HttpResponse {
-        if (response.status != HttpStatusCode.Accepted) {
-            if (response.status in arrayOf(HttpStatusCode.InternalServerError, HttpStatusCode.BadRequest)) {
-                throw NonRecoverableStateException("Non-recoverable state. Response from lambda environment: ${response.body<String>()}")
-            }
+        val body = response.body<String>()
 
-            throw LambdaClientException("HTTP 202 expected from lambda environment, got status: ${response.status}, error body: ${response.body<String>()}")
+        if (response.status != HttpStatusCode.Accepted) {
+            when (response.status) {
+                HttpStatusCode.InternalServerError -> throw NonRecoverableStateException("Non-recoverable state. Response from lambda environment: $body")
+                HttpStatusCode.Forbidden -> throw ForbiddenException("Forbidden returned by the environment. Response from lambda environment: $body")
+                HttpStatusCode.BadRequest -> throw BadRequestException("BadRequestException returned by the environment. Response from lambda environment: $body")
+                else -> throw CommonException("Unexpected HTTP error returned by the environment. Status: ${response.status}, error body: $body")
+            }
         }
 
         return response
@@ -175,7 +170,3 @@ class LambdaClient(private val httpClient: HttpClient) {
         )
     }
 }
-
-class LambdaClientException(override val message: String) : IllegalStateException()
-class BodyParseException(override val cause: Exception, val context: Context) : IllegalStateException()
-class NonRecoverableStateException(override val message: String = "Container error. Non-recoverable state") : IllegalStateException()
