@@ -14,4 +14,4 @@ data class InvocationErrorDto(
     val stackTrace: String
 )
 
-fun LambdaRuntimeException.toDto() = InvocationErrorDto(message = message, type = type, stackTrace = stackTrace)
+fun LambdaRuntimeException.toDto() = InvocationErrorDto(message = requireNotNull(message), type = type, stackTrace = stackTraceToString())
