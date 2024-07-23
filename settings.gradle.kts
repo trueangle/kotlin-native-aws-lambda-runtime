@@ -30,3 +30,4 @@ dependencyResolutionManagement {
 
 include(":lambda-runtime")
 include(":sample")
+include(":lambda-events")
