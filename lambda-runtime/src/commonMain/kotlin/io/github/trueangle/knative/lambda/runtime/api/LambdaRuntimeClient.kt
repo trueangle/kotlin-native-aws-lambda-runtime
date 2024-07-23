@@ -1,6 +1,5 @@
 package io.github.trueangle.knative.lambda.runtime.api
 
-import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException
 import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.BadRequestException
 import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.CommonException
 import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.ForbiddenException
@@ -96,7 +95,7 @@ class LambdaClient(private val httpClient: HttpClient) {
         return response
     }
 
-    suspend fun sendError(error: LambdaRuntimeException) {
+    suspend fun reportError(error: LambdaRuntimeException) {
         val response = when (error) {
             is LambdaRuntimeException.Init -> sendInitError(error)
             is LambdaRuntimeException.Invocation -> sendInvocationError(error)

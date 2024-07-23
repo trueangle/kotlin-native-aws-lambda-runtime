@@ -38,7 +38,7 @@ object LambdaRuntime {
         } catch (e: Exception) {
             e.printStackTrace()
 
-            client.sendError(e.asInitError())
+            client.reportError(e.asInitError())
             exitProcess(1)
         }
 
@@ -58,9 +58,8 @@ object LambdaRuntime {
                     val response = bufferedResponse(event.context) { handler.handleRequest(event.body, event.context) }
                     client.sendResponse(event.context, response, outputTypeInfo)
                 }
-
             } catch (e: LambdaRuntimeException) {
-                client.sendError(e)
+                client.reportError(e)
             } catch (e: LambdaEnvironmentException) {
                 e.printStackTrace()
                 when (e) {
