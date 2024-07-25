@@ -47,16 +47,16 @@ object LambdaRuntime {
 
         while (true) {
             try {
-                val event = client.retrieveNextEvent<I>(inputTypeInfo)
+                val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
 
                 if (handler is LambdaStreamHandler<I, *>) {
-                    val response = streamingResponse { handler.handleRequest(event.body, it, event.context) }
-                    client.streamResponse(event.context, response)
+                    val response = streamingResponse { handler.handleRequest(event, it, context) }
+                    client.streamResponse(context, response)
                 } else {
                     handler as LambdaBufferedHandler<I, O>
 
-                    val response = bufferedResponse(event.context) { handler.handleRequest(event.body, event.context) }
-                    client.sendResponse(event.context, response, outputTypeInfo)
+                    val response = bufferedResponse(context) { handler.handleRequest(event, context) }
+                    client.sendResponse(context, response, outputTypeInfo)
                 }
             } catch (e: LambdaRuntimeException) {
                 client.reportError(e)
