@@ -1,8 +1,6 @@
 package io.github.trueangle.knative.lambda.runtime.events
 
 import kotlinx.serialization.*
-import kotlinx.serialization.encoding.*
-import kotlinx.serialization.descriptors.*
 
 @Serializable
 data class BedrockAgentRequest(

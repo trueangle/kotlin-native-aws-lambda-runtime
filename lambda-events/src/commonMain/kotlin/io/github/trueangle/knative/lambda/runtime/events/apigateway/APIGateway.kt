@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class APIGatewayRequest(
+data class APIGatewayRequest<T>(
     @SerialName("resource") val resource: String,
     @SerialName("path") val path: String,
     @SerialName("httpMethod") val httpMethod: String,
@@ -15,7 +15,7 @@ data class APIGatewayRequest(
     @SerialName("pathParameters") val pathParameters: Map<String, String>? = null,
     @SerialName("stageVariables") val stageVariables: Map<String, String>? = null,
     @SerialName("requestContext") val requestContext: Context,
-    @SerialName("body") val body: String? = null,
+    @SerialName("body") val body: T? = null,
     @SerialName("isBase64Encoded") val isBase64Encoded: Boolean
 ) {
     @Serializable
@@ -46,6 +46,7 @@ data class APIGatewayRequest(
             @SerialName("sourceIp") val sourceIp: String? = null,
             @SerialName("accountId") val accountId: String? = null
         )
+
         @Serializable
         data class Authorizer(
             @SerialName("claims") val claims: Map<String, String>? = null
@@ -54,10 +55,10 @@ data class APIGatewayRequest(
 }
 
 @Serializable
-data class APIGatewayResponse(
+data class APIGatewayResponse<T>(
     @SerialName("statusCode") val statusCode: Int,
     @SerialName("headers") val headers: Map<String, String>? = null,
     @SerialName("multiValueHeaders") val multiValueHeaders: Map<String, String>? = null,
-    @SerialName("body") val body: String? = null,
+    @SerialName("body") val body: T? = null,
     @SerialName("isBase64Encoded") val isBase64Encoded: Boolean? = null
 )
