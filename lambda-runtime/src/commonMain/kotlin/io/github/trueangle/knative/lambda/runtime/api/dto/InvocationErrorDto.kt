@@ -5,7 +5,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class InvocationErrorDto(
+internal data class InvocationErrorDto(
     @SerialName("errorMessage")
     val message: String,
     @SerialName("errorType")
@@ -14,4 +14,4 @@ data class InvocationErrorDto(
     val stackTrace: String
 )
 
-fun LambdaRuntimeException.toDto() = InvocationErrorDto(message = requireNotNull(message), type = type, stackTrace = stackTraceToString())
+internal fun LambdaRuntimeException.toDto() = InvocationErrorDto(message = requireNotNull(message), type = type, stackTrace = stackTraceToString())

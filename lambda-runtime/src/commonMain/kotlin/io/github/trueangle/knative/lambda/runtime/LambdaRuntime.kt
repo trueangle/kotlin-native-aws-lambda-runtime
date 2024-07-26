@@ -1,10 +1,15 @@
 package io.github.trueangle.knative.lambda.runtime
 
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.NonRecoverableStateException
 import io.github.trueangle.knative.lambda.runtime.api.Context
 import io.github.trueangle.knative.lambda.runtime.api.LambdaClient
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
+import io.github.trueangle.knative.lambda.runtime.log.JsonLogFormatter
+import io.github.trueangle.knative.lambda.runtime.log.LambdaLogger
+import io.github.trueangle.knative.lambda.runtime.log.LambdaLoggerImpl
+import io.github.trueangle.knative.lambda.runtime.log.StdoutLogWriter
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
@@ -21,7 +26,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
 object LambdaRuntime {
-    inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
+    suspend inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) {
         val httpClient = HttpClient(CIO) {
             install(HttpTimeout)
             install(ContentNegotiation) {
@@ -32,10 +37,13 @@ object LambdaRuntime {
             }
         }
         val client = LambdaClient(httpClient)
+        val logger = LambdaLoggerImpl(StdoutLogWriter(), JsonLogFormatter())
 
         val handler = try {
             initHandler()
         } catch (e: Exception) {
+            //logger.f()
+
             e.printStackTrace()
 
             client.reportError(e.asInitError())
@@ -63,7 +71,7 @@ object LambdaRuntime {
             } catch (e: LambdaEnvironmentException) {
                 e.printStackTrace()
                 when (e) {
-                    is LambdaEnvironmentException.NonRecoverableStateException -> exitProcess(1)
+                    is NonRecoverableStateException -> exitProcess(1)
                     else -> Unit
                 }
             } catch (e: Throwable) {

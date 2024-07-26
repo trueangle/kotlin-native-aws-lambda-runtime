@@ -3,7 +3,7 @@ package io.github.trueangle.knative.lambda.runtime
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.HandlerException
 import io.github.trueangle.knative.lambda.runtime.api.Context
 
-sealed class LambdaRuntimeException : Throwable() {
+internal sealed class LambdaRuntimeException : Throwable() {
     abstract val type: String
 
     sealed class Init : LambdaRuntimeException() {
@@ -40,18 +40,21 @@ sealed class LambdaRuntimeException : Throwable() {
     }
 }
 
-fun Throwable.asHandlerError(context: Context) = HandlerException(
+@PublishedApi
+internal fun Throwable.asHandlerError(context: Context) = HandlerException(
     context = context,
     message = message.orEmpty(),
     cause = this
 )
 
-fun Throwable.asUnknownInvocationError(context: Context) = LambdaRuntimeException.Invocation.Unknown(
+@PublishedApi
+internal fun Throwable.asUnknownInvocationError(context: Context) = LambdaRuntimeException.Invocation.Unknown(
     context = context,
     cause = this
 )
 
-fun Throwable.asInitError() = LambdaRuntimeException.Init.Failed(
+@PublishedApi
+internal fun Throwable.asInitError() = LambdaRuntimeException.Init.Failed(
     message = message.orEmpty(),
     cause = this
 )

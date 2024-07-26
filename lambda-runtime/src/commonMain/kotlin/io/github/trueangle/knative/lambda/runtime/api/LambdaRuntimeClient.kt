@@ -25,7 +25,8 @@ import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.minutes
 import io.ktor.http.ContentType.Application.Json as ContentTypeJson
 
-class LambdaClient(private val httpClient: HttpClient) {
+@PublishedApi
+internal class LambdaClient(private val httpClient: HttpClient) {
     private val invokeUrl = "http://${LambdaEnvironment.RUNTIME_API}/2018-06-01/runtime"
 
     suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): Pair<T, Context> {
