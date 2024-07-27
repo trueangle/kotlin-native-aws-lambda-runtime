@@ -5,13 +5,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class LogMessageDto(
+internal data class LogMessageDto<T>(
     @SerialName("timestamp")
     val timestamp: String,
     @SerialName("message")
-    val message: String,
+    val message: T?,
     @SerialName("level")
     val level: LogLevel,
     @SerialName("AWSRequestId")
-    val awsRequestId: String
+    val awsRequestId: String? = null
 )

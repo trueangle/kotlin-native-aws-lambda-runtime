@@ -26,14 +26,14 @@ import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
 object LambdaRuntime {
-    suspend inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) {
+    inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
         val httpClient = HttpClient(CIO) {
             install(HttpTimeout)
             install(ContentNegotiation) {
                 json()
             }
             install(Logging) {
-                level = LogLevel.ALL
+                //level = LogLevel.ALL
             }
         }
         val client = LambdaClient(httpClient)
@@ -42,9 +42,7 @@ object LambdaRuntime {
         val handler = try {
             initHandler()
         } catch (e: Exception) {
-            //logger.f()
-
-            e.printStackTrace()
+            logger.fatal(e)
 
             client.reportError(e.asInitError())
             exitProcess(1)
@@ -57,8 +55,14 @@ object LambdaRuntime {
             try {
                 val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
 
+                with(logger) {
+                    setContext(context)
+                    trace(event)
+                    trace(context)
+                }
+
                 if (handler is LambdaStreamHandler<I, *>) {
-                    val response = streamingResponse { handler.handleRequest(event, it, context) }
+                    val response = streamingResponse(logger) { handler.handleRequest(event, it, context) }
                     client.streamResponse(context, response)
                 } else {
                     handler as LambdaBufferedHandler<I, O>
@@ -67,15 +71,20 @@ object LambdaRuntime {
                     client.sendResponse(context, response, outputTypeInfo)
                 }
             } catch (e: LambdaRuntimeException) {
+                logger.error(e)
                 client.reportError(e)
             } catch (e: LambdaEnvironmentException) {
                 e.printStackTrace()
                 when (e) {
-                    is NonRecoverableStateException -> exitProcess(1)
-                    else -> Unit
+                    is NonRecoverableStateException -> {
+                        logger.fatal(e)
+                        exitProcess(1)
+                    }
+
+                    else -> logger.error(e)
                 }
             } catch (e: Throwable) {
-                e.printStackTrace()
+                logger.fatal(e)
 
                 exitProcess(1)
             }
@@ -84,24 +93,24 @@ object LambdaRuntime {
 }
 
 @PublishedApi
-internal inline fun streamingResponse(crossinline handler: suspend (ByteWriteChannel) -> Unit) = object : WriteChannelContent() {
-    override suspend fun writeTo(channel: ByteWriteChannel) {
-        try {
-            handler(channel)
-        } catch (e: Exception) {
-            channel.writeStringUtf8(e.toTrailer())
+internal inline fun streamingResponse(logger: LambdaLogger, crossinline handler: suspend (ByteWriteChannel) -> Unit) =
+    object : WriteChannelContent() {
+        override suspend fun writeTo(channel: ByteWriteChannel) {
+            try {
+                handler(channel)
+            } catch (e: Exception) {
+                logger.warn(e)
+                channel.writeStringUtf8(e.toTrailer())
+            }
         }
-    }
 
-    private fun Throwable.toTrailer(): String =
-        "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
-}
+        private fun Throwable.toTrailer(): String =
+            "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
+    }
 
 @PublishedApi
-internal inline fun <T, R> T.bufferedResponse(context: Context, block: T.() -> R): R {
-    return try {
-        block()
-    } catch (e: Exception) {
-        throw e.asHandlerError(context)
-    }
+internal inline fun <T, R> T.bufferedResponse(context: Context, block: T.() -> R): R = try {
+    block()
+} catch (e: Exception) {
+    throw e.asHandlerError(context)
 }

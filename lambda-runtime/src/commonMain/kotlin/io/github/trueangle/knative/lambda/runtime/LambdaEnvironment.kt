@@ -13,8 +13,9 @@ import kotlinx.cinterop.toKString
 import platform.posix.getenv
 
 @OptIn(ExperimentalForeignApi::class)
-object LambdaEnvironment {
-    val MEMORY_LIMIT = getenv(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)?.toKString()?.toIntOrNull() ?: 128
+@PublishedApi
+internal object LambdaEnvironment {
+    val FUNCTION_MEMORY_SIZE = getenv(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)?.toKString()?.toIntOrNull() ?: 128
     val LOG_GROUP_NAME: String = getenv(AWS_LAMBDA_LOG_GROUP_NAME)?.toKString().orEmpty()
     val LOG_STREAM_NAME: String = getenv(AWS_LAMBDA_LOG_STREAM_NAME)?.toKString().orEmpty()
     val LAMBDA_LOG_LEVEL: String? = getenv(AWS_LAMBDA_LOG_LEVEL)?.toKString()
@@ -22,12 +23,12 @@ object LambdaEnvironment {
     val FUNCTION_NAME: String = getenv(AWS_LAMBDA_FUNCTION_NAME)?.toKString().orEmpty()
     val FUNCTION_VERSION: String = getenv(AWS_LAMBDA_FUNCTION_VERSION)?.toKString().orEmpty()
 
-    internal val RUNTIME_API: String = requireNotNull(getenv(AWS_LAMBDA_RUNTIME_API)?.toKString()) {
+    val RUNTIME_API: String = requireNotNull(getenv(AWS_LAMBDA_RUNTIME_API)?.toKString()) {
         "Can't find AWS_LAMBDA_RUNTIME_API env variable"
     }
 }
 
-internal object ReservedRuntimeEnvironmentVariables {
+private object ReservedRuntimeEnvironmentVariables {
     /**
      * The handler location configured on the function.
      */

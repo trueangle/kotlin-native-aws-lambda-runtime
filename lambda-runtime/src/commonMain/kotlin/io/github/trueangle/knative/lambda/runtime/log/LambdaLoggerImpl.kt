@@ -1,35 +1,48 @@
 package io.github.trueangle.knative.lambda.runtime.log
 
+import io.github.trueangle.knative.lambda.runtime.api.Context
+
 @PublishedApi
 internal class LambdaLoggerImpl(
     private val writer: LogWriter,
     private val logFormatter: LogFormatter
 ) : LambdaLogger {
-
     private val currentLogLevel = LogLevel.fromEnv()
 
-    override fun t(message: Any?) {
+    override fun trace(message: Any?) {
         write(LogLevel.TRACE, message)
     }
 
-    override fun d(message: Any?) {
+    override fun debug(message: Any?) {
         write(LogLevel.DEBUG, message)
     }
 
-    override fun i(message: Any?) {
+    override fun info(message: Any?) {
         write(LogLevel.INFO, message)
     }
 
-    override fun w(message: Any?) {
+    override fun warn(message: Any?) {
         write(LogLevel.WARN, message)
     }
 
-    override fun e(message: Any?) {
-        write(LogLevel.ERROR, message)
+    override fun error(message: Any?) {
+        if (message is Throwable) {
+            write(LogLevel.FATAL, message) // todo
+        } else {
+            write(LogLevel.ERROR, message)
+        }
     }
 
-    override fun f(message: Any?) {
-        write(LogLevel.FATAL, message)
+    override fun fatal(message: Any?) {
+        if (message is Throwable) {
+            write(LogLevel.FATAL, message) // todo
+        } else {
+            write(LogLevel.FATAL, message)
+        }
+    }
+
+    fun setContext(context: Context) {
+        logFormatter.onContextAvailable(context)
     }
 
     private fun write(level: LogLevel, message: Any?) {

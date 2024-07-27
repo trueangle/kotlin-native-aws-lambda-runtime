@@ -1,5 +1,8 @@
 package io.github.trueangle.knative.lambda.runtime.api
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Context(
     /**
      * The Lambda request ID associated with the request.
@@ -40,6 +43,7 @@ data class Context(
      */
     val cognitoIdentity: CognitoIdentity?,
 ) {
+    @Serializable
     data class ClientContext(
         /**
          * Gets the client information provided by the AWS Mobile SDK
@@ -55,6 +59,7 @@ data class Context(
         val environment: Map<String, String>
     )
 
+    @Serializable
     data class Client(
         val installationId: String,
         val appTitle: String,
@@ -63,6 +68,7 @@ data class Context(
         val appPackageName: String
     )
 
+    @Serializable
     data class CognitoIdentity(
         val identityId: String,
         val identityPoolId: String

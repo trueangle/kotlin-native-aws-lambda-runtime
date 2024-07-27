@@ -168,7 +168,7 @@ internal class LambdaClient(private val httpClient: HttpClient) {
             xrayTracingId = xrayTraceId,
             invokedFunctionName = LambdaEnvironment.FUNCTION_NAME,
             invokedFunctionVersion = LambdaEnvironment.FUNCTION_VERSION,
-            memoryLimitMb = LambdaEnvironment.MEMORY_LIMIT
+            memoryLimitMb = LambdaEnvironment.FUNCTION_MEMORY_SIZE
         )
     }
 }

@@ -1,15 +1,14 @@
 package io.github.trueangle.knative.lambda.runtime.log
 
-/**
- * Each method corresponds to LogLevel
- */
+import io.github.trueangle.knative.lambda.runtime.api.Context
+
 interface LambdaLogger {
-    fun t(message: Any?)
-    fun d(message: Any?)
-    fun i(message: Any?)
-    fun w(message: Any?)
-    fun e(message: Any?)
-    fun f(message: Any?)
+    fun trace(message: Any?)
+    fun debug(message: Any?)
+    fun info(message: Any?)
+    fun warn(message: Any?)
+    fun error(message: Any?)
+    fun fatal(message: Any?)
 }
 
 interface LogWriter {
@@ -18,4 +17,5 @@ interface LogWriter {
 
 interface LogFormatter {
     fun format(logLevel: LogLevel, message: Any?): Any?
+    fun onContextAvailable(context: Context) {}
 }
