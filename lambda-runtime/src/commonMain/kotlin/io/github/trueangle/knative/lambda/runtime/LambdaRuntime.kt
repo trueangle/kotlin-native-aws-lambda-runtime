@@ -74,7 +74,6 @@ object LambdaRuntime {
                 logger.error(e)
                 client.reportError(e)
             } catch (e: LambdaEnvironmentException) {
-                e.printStackTrace()
                 when (e) {
                     is NonRecoverableStateException -> {
                         logger.fatal(e)
