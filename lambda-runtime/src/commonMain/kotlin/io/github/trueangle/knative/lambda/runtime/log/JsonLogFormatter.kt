@@ -7,7 +7,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-@PublishedApi
 internal class JsonLogFormatter : LogFormatter {
     private var requestContext: Context? = null
 
@@ -16,7 +15,7 @@ internal class JsonLogFormatter : LogFormatter {
             Json.encodeToString(
                 LogMessageDto(
                     timestamp = Clock.System.now().toString(),
-                    message = message,
+                    message = if (message is Throwable) message.prettyPrint() else message,
                     level = logLevel,
                     awsRequestId = requestContext?.awsRequestId
                 )
@@ -25,7 +24,7 @@ internal class JsonLogFormatter : LogFormatter {
             Json.encodeToString(
                 LogMessageDto(
                     timestamp = Clock.System.now().toString(),
-                    message = "Unsupported message type",
+                    message = message?.toString(),
                     level = logLevel,
                     awsRequestId = requestContext?.awsRequestId
                 )

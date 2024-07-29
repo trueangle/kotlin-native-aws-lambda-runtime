@@ -6,15 +6,14 @@ import io.github.trueangle.knative.lambda.runtime.api.LambdaClient
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
-import io.github.trueangle.knative.lambda.runtime.log.JsonLogFormatter
-import io.github.trueangle.knative.lambda.runtime.log.LambdaLogger
-import io.github.trueangle.knative.lambda.runtime.log.LambdaLoggerImpl
-import io.github.trueangle.knative.lambda.runtime.log.StdoutLogWriter
+import io.github.trueangle.knative.lambda.runtime.log.Log
+import io.github.trueangle.knative.lambda.runtime.log.LogLevel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.LogLevel as KtorLogLevel
+import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.content.OutgoingContent.WriteChannelContent
 import io.ktor.serialization.kotlinx.json.json
@@ -26,23 +25,26 @@ import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
 object LambdaRuntime {
-    inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
-        val httpClient = HttpClient(CIO) {
-            install(HttpTimeout)
-            install(ContentNegotiation) {
-                json()
+    private val httpClient = HttpClient(CIO) {
+        install(HttpTimeout)
+        install(ContentNegotiation) { json() }
+        install(Logging) {
+            level = if (Log.currentLogLevel == LogLevel.TRACE) KtorLogLevel.ALL else KtorLogLevel.NONE
+            logger = object : Logger {
+                override fun log(message: String) = Log.trace(message)
             }
-            install(Logging) {
-                //level = LogLevel.ALL
-            }
+            filter { it.headers.contains("Lambda-Runtime-Function-Response-Mode") }
         }
-        val client = LambdaClient(httpClient)
-        val logger = LambdaLoggerImpl(StdoutLogWriter(), JsonLogFormatter())
+    }
 
+    @PublishedApi
+    internal val client = LambdaClient(httpClient)
+
+    inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
         val handler = try {
             initHandler()
         } catch (e: Exception) {
-            logger.fatal(e)
+            Log.fatal(e)
 
             client.reportError(e.asInitError())
             exitProcess(1)
@@ -55,35 +57,34 @@ object LambdaRuntime {
             try {
                 val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
 
-                with(logger) {
+                with(Log) {
                     setContext(context)
                     trace(event)
                     trace(context)
                 }
 
                 if (handler is LambdaStreamHandler<I, *>) {
-                    val response = streamingResponse(logger) { handler.handleRequest(event, it, context) }
+                    val response = streamingResponse { handler.handleRequest(event, it, context) }
                     client.streamResponse(context, response)
                 } else {
                     handler as LambdaBufferedHandler<I, O>
-
                     val response = bufferedResponse(context) { handler.handleRequest(event, context) }
                     client.sendResponse(context, response, outputTypeInfo)
                 }
             } catch (e: LambdaRuntimeException) {
-                logger.error(e)
+                Log.error(e)
                 client.reportError(e)
             } catch (e: LambdaEnvironmentException) {
                 when (e) {
                     is NonRecoverableStateException -> {
-                        logger.fatal(e)
+                        Log.fatal(e)
                         exitProcess(1)
                     }
 
-                    else -> logger.error(e)
+                    else -> Log.error(e)
                 }
             } catch (e: Throwable) {
-                logger.fatal(e)
+                Log.fatal(e)
 
                 exitProcess(1)
             }
@@ -92,13 +93,13 @@ object LambdaRuntime {
 }
 
 @PublishedApi
-internal inline fun streamingResponse(logger: LambdaLogger, crossinline handler: suspend (ByteWriteChannel) -> Unit) =
+internal inline fun streamingResponse(crossinline handler: suspend (ByteWriteChannel) -> Unit) =
     object : WriteChannelContent() {
         override suspend fun writeTo(channel: ByteWriteChannel) {
             try {
                 handler(channel)
             } catch (e: Exception) {
-                logger.warn(e)
+                Log.warn(e)
                 channel.writeStringUtf8(e.toTrailer())
             }
         }
