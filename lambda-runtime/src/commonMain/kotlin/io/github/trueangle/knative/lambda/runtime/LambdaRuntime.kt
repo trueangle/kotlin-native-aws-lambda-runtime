@@ -22,12 +22,15 @@ import io.ktor.util.reflect.typeInfo
 import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import kotlin.system.exitProcess
 
 object LambdaRuntime {
     private val httpClient = HttpClient(CIO) {
         install(HttpTimeout)
-        install(ContentNegotiation) { json() }
+        install(ContentNegotiation) {
+            json(Json { explicitNulls = false })
+        }
         install(Logging) {
             level = if (Log.currentLogLevel == LogLevel.TRACE) KtorLogLevel.ALL else KtorLogLevel.NONE
             logger = object : Logger {

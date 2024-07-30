@@ -19,6 +19,7 @@ kotlin {
     sourceSets {
         nativeMain.dependencies {
             implementation(projects.lambdaRuntime)
+            implementation(projects.lambdaEvents)
             implementation(libs.kotlin.serialization.json)
         }
 

@@ -23,14 +23,15 @@ data class APIGatewayV2Request<T>(
         @SerialName("accountId") val accountId: String,
         @SerialName("apiId") val apiId: String,
         @SerialName("domainName") val domainName: String,
-        @SerialName("domainPrefix") val domainPrefix: String,
+        @SerialName("domainPrefix") val domainPrefix: String, 
         @SerialName("stage") val stage: String,
         @SerialName("requestId") val requestId: String,
         @SerialName("http") val http: HTTP,
         @SerialName("authorizer") val authorizer: Authorizer?,
         @SerialName("authentication") val authentication: Authentication?,
         @SerialName("time") val time: String,
-        @SerialName("timeEpoch") val timeEpoch: Long
+        @SerialName("timeEpoch") val timeEpoch: Long,
+        @SerialName("routeKey") val routeKey: String 
     ) {
         @Serializable
         data class HTTP(
