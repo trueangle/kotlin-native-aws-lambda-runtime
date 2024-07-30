@@ -8,6 +8,7 @@ import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.Non
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.EventBodyParseException
 import io.github.trueangle.knative.lambda.runtime.api.dto.toDto
+import io.github.trueangle.knative.lambda.runtime.log.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.timeout
@@ -48,7 +49,7 @@ internal class LambdaClient(private val httpClient: HttpClient) {
     }
 
     suspend fun <T> sendResponse(event: Context, body: T, bodyType: TypeInfo): HttpResponse {
-        println("sendResponse from handler: $body")
+        Log.trace("sendResponse from handler: $body")
 
         val response = httpClient.post {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")

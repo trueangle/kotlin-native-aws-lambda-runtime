@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class APIGatewayV2Request<T>(
+data class APIGatewayV2Request(
     @SerialName("version") val version: String,
     @SerialName("routeKey") val routeKey: String,
     @SerialName("rawPath") val rawPath: String,
@@ -15,7 +15,7 @@ data class APIGatewayV2Request<T>(
     @SerialName("pathParameters") val pathParameters: Map<String, String>?,
     @SerialName("requestContext") val context: Context,
     @SerialName("stageVariables") val stageVariables: Map<String, String>?,
-    @SerialName("body") val body: T?,
+    @SerialName("body") val body: String?,
     @SerialName("isBase64Encoded") val isBase64Encoded: Boolean
 ) {
     @Serializable
@@ -96,10 +96,10 @@ data class APIGatewayV2Request<T>(
 }
 
 @Serializable
-data class APIGatewayV2Response<T>(
+data class APIGatewayV2Response(
     @SerialName("statusCode") val statusCode: Int,
     @SerialName("headers") val headers: Map<String, String>?,
-    @SerialName("body") val body: T?,
+    @SerialName("body") val body: String?,
     @SerialName("isBase64Encoded") val isBase64Encoded: Boolean?,
     @SerialName("cookies") val cookies: List<String>?
 )
