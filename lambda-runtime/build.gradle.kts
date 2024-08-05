@@ -4,7 +4,8 @@ plugins {
 }
 
 kotlin {
-    linuxX64()
+    val isArm64 = System.getProperty("os.arch") == "aarch64"
+    val nativeTarget = if (isArm64) linuxArm64() else linuxX64()
 
     sourceSets {
         commonMain.dependencies {
