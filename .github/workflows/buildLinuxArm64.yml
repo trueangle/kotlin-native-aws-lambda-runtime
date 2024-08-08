@@ -1,4 +1,4 @@
-name: Build LinuxArm64 
+name: Build Linux64 
 on:
   workflow_dispatch:
 
@@ -13,6 +13,28 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 17
+
+      - name: Install specific libcurl version
+        run: |
+          # Install dependencies
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev
+
+          # Define the version you want to install
+          CURL_VERSION=7.80.0
+
+          # Download and extract the source code
+          curl -LO https://curl.se/download/curl-${CURL_VERSION}.tar.gz
+          tar -xzf curl-${CURL_VERSION}.tar.gz
+          cd curl-${CURL_VERSION}
+
+          # Configure, build, and install
+          ./configure
+          make
+          sudo make install
+
+          # Ensure the new libcurl is used
+          sudo ldconfig
 
       - name: Run build
         run: ./gradlew build
