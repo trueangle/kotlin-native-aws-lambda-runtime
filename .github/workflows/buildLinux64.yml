@@ -15,7 +15,7 @@ jobs:
           java-version: 17
 
       - name: Run build
-      - run: ./gradlew build
+        run: ./gradlew build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
