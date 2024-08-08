@@ -1,0 +1,24 @@
+name: Build LinuxArm64 
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17
+
+      - name: Run build
+        run: ./gradlew build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: kotlin-native-arm-build
+          path: sample/build/bin/linuxArm64/releaseExecutable
