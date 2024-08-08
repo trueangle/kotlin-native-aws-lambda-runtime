@@ -15,7 +15,7 @@ jobs:
           java-version: 17
 
       - name: Install libcurl
-        run: apt-get install libcurl4-gnutls-dev
+        run: sudo apt-get install libcurl4-gnutls-dev
           
       - name: Run build
         run: ./gradlew build
