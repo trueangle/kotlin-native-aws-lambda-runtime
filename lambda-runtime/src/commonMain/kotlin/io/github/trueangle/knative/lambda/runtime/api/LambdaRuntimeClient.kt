@@ -24,6 +24,7 @@ import io.ktor.http.contentType
 import io.ktor.util.reflect.TypeInfo
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.TimeSource
 import io.ktor.http.ContentType.Application.Json as ContentTypeJson
 
 @PublishedApi
@@ -31,19 +32,28 @@ internal class LambdaClient(private val httpClient: HttpClient) {
     private val invokeUrl = "http://${LambdaEnvironment.RUNTIME_API}/2018-06-01/runtime"
 
     suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): Pair<T, Context> {
+        val requestMark = TimeSource.Monotonic.markNow()
         val response = httpClient.get {
             url("${invokeUrl}/invocation/next")
             timeout {
                 requestTimeoutMillis = 60 * 1000 * 30 // todo
             }
         }
+        println("retrieveNextEvent requestMark " + requestMark.elapsedNow().inWholeMilliseconds)
 
+        val contextMark = TimeSource.Monotonic.markNow()
         val context = contextFromResponseHeaders(response)
+
+        println("retrieveNextEvent contextMark " + contextMark.elapsedNow().inWholeMilliseconds)
+
+        val bodyMark = TimeSource.Monotonic.markNow()
         val body = try {
             response.body(bodyType) as T
         } catch (e: Exception) {
             throw EventBodyParseException(cause = e, context = context)
         }
+
+        println("retrieveNextEvent bodyMark " + bodyMark.elapsedNow().inWholeMilliseconds)
 
         return body to context
     }

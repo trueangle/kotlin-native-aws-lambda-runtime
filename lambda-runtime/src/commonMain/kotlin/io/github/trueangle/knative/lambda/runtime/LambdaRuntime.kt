@@ -9,10 +9,9 @@ import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
 import io.github.trueangle.knative.lambda.runtime.log.Log
 import io.github.trueangle.knative.lambda.runtime.log.LogLevel
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.curl.Curl
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.logging.LogLevel as KtorLogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.content.OutgoingContent.WriteChannelContent
@@ -24,9 +23,11 @@ import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlin.system.exitProcess
+import kotlin.time.TimeSource
+import io.ktor.client.plugins.logging.LogLevel as KtorLogLevel
 
 object LambdaRuntime {
-    private val httpClient = HttpClient(CIO) {
+    private val httpClient = HttpClient(Curl) {
         install(HttpTimeout)
         install(ContentNegotiation) {
             json(Json { explicitNulls = false })
@@ -44,6 +45,7 @@ object LambdaRuntime {
     internal val client = LambdaClient(httpClient)
 
     inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
+        val initMark = TimeSource.Monotonic.markNow()
         val handler = try {
             initHandler()
         } catch (e: Exception) {
@@ -52,13 +54,16 @@ object LambdaRuntime {
             client.reportError(e.asInitError())
             exitProcess(1)
         }
+        println("initHandler time " + initMark.elapsedNow().inWholeMilliseconds)
 
         val inputTypeInfo = typeInfo<I>()
         val outputTypeInfo = typeInfo<O>()
 
         while (true) {
             try {
+                val mark = TimeSource.Monotonic.markNow()
                 val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
+                println("retrieveNextEvent time " + mark.elapsedNow().inWholeMilliseconds)
 
                 with(Log) {
                     setContext(context)
@@ -71,8 +76,13 @@ object LambdaRuntime {
                     client.streamResponse(context, response)
                 } else {
                     handler as LambdaBufferedHandler<I, O>
+                    val handlerMark = TimeSource.Monotonic.markNow()
                     val response = bufferedResponse(context) { handler.handleRequest(event, context) }
+                    println("handleRequest time " + handlerMark.elapsedNow().inWholeMilliseconds)
+
+                    val sendResponseMark = TimeSource.Monotonic.markNow()
                     client.sendResponse(context, response, outputTypeInfo)
+                    println("sendResponse time " + sendResponseMark.elapsedNow().inWholeMilliseconds)
                 }
             } catch (e: LambdaRuntimeException) {
                 Log.error(e)

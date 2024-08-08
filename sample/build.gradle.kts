@@ -8,9 +8,22 @@ kotlin {
     val isArm64 = System.getProperty("os.arch") == "aarch64"
     val nativeTarget = if (isArm64) linuxArm64() else linuxX64()
 
-    nativeTarget.binaries {
-        executable {
-            entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main"
+    nativeTarget.apply {
+        /*compilations.getByName("main") {
+            cinterops {
+                val libcurl by creating {
+                    definitionFile.set(project.file("src/nativeInterop/cinterop/libcurl.def"))
+               *//*     packageName("com.github.trueangle.knative.lambda.runtime.sample.libcurl")
+                    compilerOpts("-I/path")
+                    includeDirs.allHeaders("path")*//*
+                }
+            }
+        }*/
+        binaries {
+            executable {
+                //linkerOpts = mutableListOf("-L/opt/homebrew/Cellar/curl/8.9.1/lib", "-I/opt/homebrew/Cellar/curl/8.9.1/include", "-lcurl")
+                entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main"
+            }
         }
     }
 
