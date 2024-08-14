@@ -6,12 +6,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Where is libcrypt
-        run: whereis libcrypt.so.1
+      - name: Copy
+        run: sudo cp /lib/x86_64-linux-gnu/libcrypt.so.1 .
       - name: Upload libcrypt
         uses: actions/upload-artifact@v3
         with:
           name: kotlin-native-arm-build
-          path: /usr/lib/x86_64-linux-gnu/libcrypt.so.1
+          path: libcrypt.so.1
 
   
