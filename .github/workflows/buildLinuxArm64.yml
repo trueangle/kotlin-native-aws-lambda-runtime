@@ -1,4 +1,4 @@
-name: Build Linux64 curl-engine-branch
+name: Build Linux64
 on:
   workflow_dispatch:
 
@@ -15,15 +15,13 @@ jobs:
           java-version: 17
 
       - name: Install libcurl
-        run: |
-          sudo apt-get update
-          sudo apt-get install libcurl3-dev
-          
+        run: apt-get install libcurl4-gnutls-dev
+
       - name: Run build
         run: ./gradlew build
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: kotlin-native-build
-          path: sample/build/bin
+          name: kotlin-native-arm-build
+          path: sample/build/bin/linuxArm64/releaseExecutable
