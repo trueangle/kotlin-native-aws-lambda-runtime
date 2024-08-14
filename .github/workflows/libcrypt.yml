@@ -12,6 +12,6 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: kotlin-native-arm-build
-          path: lib/x86_64-linux-gnu/libcrypt.so.1
+          path: usr/lib/x86_64-linux-gnu/libcrypt.so.1
 
   
