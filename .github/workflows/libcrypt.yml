@@ -6,6 +6,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Where is libcrypt
+        run: whereis libcrypt.so.1
       - name: Upload libcrypt
         uses: actions/upload-artifact@v3
         with:
