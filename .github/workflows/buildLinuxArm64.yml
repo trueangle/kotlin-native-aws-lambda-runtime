@@ -4,7 +4,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22-arm
+    runs-on: ubuntu-24-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
