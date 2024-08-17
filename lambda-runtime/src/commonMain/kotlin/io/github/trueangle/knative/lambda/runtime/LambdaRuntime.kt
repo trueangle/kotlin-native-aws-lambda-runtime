@@ -45,7 +45,6 @@ object LambdaRuntime {
     internal val client = LambdaClient(httpClient)
 
     inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
-        val initMark = TimeSource.Monotonic.markNow()
         val handler = try {
             initHandler()
         } catch (e: Exception) {
@@ -54,16 +53,13 @@ object LambdaRuntime {
             client.reportError(e.asInitError())
             exitProcess(1)
         }
-        println("initHandler time " + initMark.elapsedNow().inWholeMilliseconds)
 
         val inputTypeInfo = typeInfo<I>()
         val outputTypeInfo = typeInfo<O>()
 
         while (true) {
             try {
-                val mark = TimeSource.Monotonic.markNow()
                 val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
-                println("retrieveNextEvent time " + mark.elapsedNow().inWholeMilliseconds)
 
                 with(Log) {
                     setContext(context)
@@ -76,13 +72,9 @@ object LambdaRuntime {
                     client.streamResponse(context, response)
                 } else {
                     handler as LambdaBufferedHandler<I, O>
-                    val handlerMark = TimeSource.Monotonic.markNow()
                     val response = bufferedResponse(context) { handler.handleRequest(event, context) }
-                    println("handleRequest time " + handlerMark.elapsedNow().inWholeMilliseconds)
 
-                    val sendResponseMark = TimeSource.Monotonic.markNow()
                     client.sendResponse(context, response, outputTypeInfo)
-                    println("sendResponse time " + sendResponseMark.elapsedNow().inWholeMilliseconds)
                 }
             } catch (e: LambdaRuntimeException) {
                 Log.error(e)
