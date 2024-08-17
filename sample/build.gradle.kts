@@ -8,9 +8,11 @@ kotlin {
     val isArm64 = System.getProperty("os.arch") == "aarch64"
     val nativeTarget = if (isArm64) linuxArm64() else linuxX64()
 
-    nativeTarget.binaries {
-        executable {
-            entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main"
+    nativeTarget.apply {
+        binaries {
+            executable {
+                entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main"
+            }
         }
     }
 

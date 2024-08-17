@@ -24,6 +24,7 @@ import io.ktor.http.contentType
 import io.ktor.util.reflect.TypeInfo
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.TimeSource
 import io.ktor.http.ContentType.Application.Json as ContentTypeJson
 
 @PublishedApi
@@ -37,7 +38,6 @@ internal class LambdaClient(private val httpClient: HttpClient) {
                 requestTimeoutMillis = 60 * 1000 * 30 // todo
             }
         }
-
         val context = contextFromResponseHeaders(response)
         val body = try {
             response.body(bodyType) as T
@@ -49,7 +49,7 @@ internal class LambdaClient(private val httpClient: HttpClient) {
     }
 
     suspend fun <T> sendResponse(event: Context, body: T, bodyType: TypeInfo): HttpResponse {
-        Log.trace("sendResponse from handler: $body")
+        Log.trace("Response from handler: $body")
 
         val response = httpClient.post {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")

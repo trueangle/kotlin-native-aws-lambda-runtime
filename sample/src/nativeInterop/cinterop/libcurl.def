@@ -1,0 +1,6 @@
+package = libcurl
+headers = curl/curl.h
+headerFilter = curl/*
+
+#compilerOpts.linux = -I/opt/homebrew/Cellar/curl/8.9.1/include
+#linkerOpts.linux = -L/opt/homebrew/Cellar/curl/8.9.1/lib -lcurl

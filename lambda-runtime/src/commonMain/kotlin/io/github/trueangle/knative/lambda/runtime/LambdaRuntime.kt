@@ -9,10 +9,9 @@ import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
 import io.github.trueangle.knative.lambda.runtime.log.Log
 import io.github.trueangle.knative.lambda.runtime.log.LogLevel
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.curl.Curl
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.logging.LogLevel as KtorLogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.content.OutgoingContent.WriteChannelContent
@@ -24,9 +23,11 @@ import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlin.system.exitProcess
+import kotlin.time.TimeSource
+import io.ktor.client.plugins.logging.LogLevel as KtorLogLevel
 
 object LambdaRuntime {
-    private val httpClient = HttpClient(CIO) {
+    private val httpClient = HttpClient(Curl) {
         install(HttpTimeout)
         install(ContentNegotiation) {
             json(Json { explicitNulls = false })
@@ -72,6 +73,7 @@ object LambdaRuntime {
                 } else {
                     handler as LambdaBufferedHandler<I, O>
                     val response = bufferedResponse(context) { handler.handleRequest(event, context) }
+
                     client.sendResponse(context, response, outputTypeInfo)
                 }
             } catch (e: LambdaRuntimeException) {
