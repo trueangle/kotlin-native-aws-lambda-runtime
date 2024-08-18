@@ -63,6 +63,7 @@ object LambdaRuntime {
 
                 with(Log) {
                     setContext(context)
+
                     trace(event)
                     trace(context)
                 }
@@ -83,6 +84,7 @@ object LambdaRuntime {
                 when (e) {
                     is NonRecoverableStateException -> {
                         Log.fatal(e)
+
                         exitProcess(1)
                     }
 
