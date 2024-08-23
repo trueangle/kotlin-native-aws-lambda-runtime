@@ -46,6 +46,8 @@ object LambdaRuntime {
 
     inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
         val handler = try {
+            Log.info("Initializing Kotlin Native Lambda Runtime")
+
             initHandler()
         } catch (e: Exception) {
             Log.fatal(e)
@@ -54,11 +56,14 @@ object LambdaRuntime {
             exitProcess(1)
         }
 
+        val handlerName = handler::class.simpleName
         val inputTypeInfo = typeInfo<I>()
         val outputTypeInfo = typeInfo<O>()
 
         while (true) {
             try {
+                Log.info("Runtime is ready for a new event")
+
                 val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
 
                 with(Log) {
@@ -68,12 +73,20 @@ object LambdaRuntime {
                     trace(context)
                 }
 
+                Log.info("$handlerName invocation started")
+
                 if (handler is LambdaStreamHandler<I, *>) {
                     val response = streamingResponse { handler.handleRequest(event, it, context) }
+
+                    Log.info("$handlerName started response streaming")
+
                     client.streamResponse(context, response)
                 } else {
                     handler as LambdaBufferedHandler<I, O>
                     val response = bufferedResponse(context) { handler.handleRequest(event, context) }
+
+                    Log.info("$handlerName invocation completed")
+                    Log.trace("$handlerName's buffered response: $response")
 
                     client.sendResponse(context, response, outputTypeInfo)
                 }
@@ -107,6 +120,7 @@ internal inline fun streamingResponse(crossinline handler: suspend (ByteWriteCha
                 handler(channel)
             } catch (e: Exception) {
                 Log.warn(e)
+
                 channel.writeStringUtf8(e.toTrailer())
             }
         }

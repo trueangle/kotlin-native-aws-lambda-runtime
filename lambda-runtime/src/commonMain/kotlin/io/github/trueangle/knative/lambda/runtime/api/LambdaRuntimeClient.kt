@@ -29,12 +29,13 @@ import io.ktor.http.ContentType.Application.Json as ContentTypeJson
 @PublishedApi
 internal class LambdaClient(private val httpClient: HttpClient) {
     private val invokeUrl = "http://${LambdaEnvironment.RUNTIME_API}/2018-06-01/runtime"
+    private val requestTimeout = 15.minutes.inWholeMilliseconds
 
     suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): Pair<T, Context> {
         val response = httpClient.get {
             url("${invokeUrl}/invocation/next")
 
-            timeout { requestTimeoutMillis = 15.minutes.inWholeMilliseconds }
+            timeout { requestTimeoutMillis = requestTimeout }
         }
         val context = contextFromResponseHeaders(response)
         val body = try {
@@ -47,8 +48,6 @@ internal class LambdaClient(private val httpClient: HttpClient) {
     }
 
     suspend fun <T> sendResponse(event: Context, body: T, bodyType: TypeInfo): HttpResponse {
-        Log.trace("Response from handler: $body")
-
         val response = httpClient.post {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")
             contentType(ContentTypeJson)
@@ -70,7 +69,7 @@ internal class LambdaClient(private val httpClient: HttpClient) {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")
 
             timeout {
-                requestTimeoutMillis = 15.minutes.inWholeMilliseconds
+                requestTimeoutMillis = requestTimeout
             }
 
             headers {
