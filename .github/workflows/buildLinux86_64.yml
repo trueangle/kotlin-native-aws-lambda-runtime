@@ -1,4 +1,4 @@
-name: Build Linux64 curl-engine-branch
+name: Build Linux 86_64
 on:
   workflow_dispatch:
 
