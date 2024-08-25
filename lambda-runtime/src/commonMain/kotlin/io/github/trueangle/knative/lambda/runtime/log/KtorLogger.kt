@@ -14,6 +14,7 @@ internal class KtorLogger : Logger {
     fun getLevel() = when (Log.currentLogLevel) {
         LogLevel.TRACE -> KtorLogLevel.ALL
         LogLevel.DEBUG -> KtorLogLevel.BODY
+        LogLevel.INFO -> KtorLogLevel.INFO
         else -> KtorLogLevel.NONE
     }
 }
