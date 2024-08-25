@@ -68,8 +68,8 @@ object LambdaRuntime {
                 with(Log) {
                     setContext(context)
 
-                    trace(event)
-                    trace(context)
+                    debug(event)
+                    debug(context)
                 }
 
                 Log.info("$handlerName invocation started")
@@ -85,6 +85,8 @@ object LambdaRuntime {
                     val response = bufferedResponse(context) { handler.handleRequest(event, context) }
 
                     Log.info("$handlerName invocation completed")
+                    Log.debug("$handlerName response: ")
+                    Log.debug(response)
 
                     client.sendResponse(context, response, outputTypeInfo)
                 }
