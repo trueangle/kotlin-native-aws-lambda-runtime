@@ -1,10 +1,12 @@
 package io.github.trueangle.knative.lambda.runtime.log
 
-internal fun Throwable.prettyPrint() = buildString {
+internal fun Throwable.prettyPrint(includeStackTrace: Boolean = true) = buildString {
     append("An exception occurred:\n")
     message?.let {
         append("Message: ${message}\n")
     }
-    append("Stack Trace:\n")
-    append(stackTraceToString())
+    if (includeStackTrace) {
+        append("Stack Trace:\n")
+        append(stackTraceToString())
+    }
 }

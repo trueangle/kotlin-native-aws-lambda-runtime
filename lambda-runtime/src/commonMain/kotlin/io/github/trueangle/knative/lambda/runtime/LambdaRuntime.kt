@@ -6,6 +6,7 @@ import io.github.trueangle.knative.lambda.runtime.api.LambdaClient
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
+import io.github.trueangle.knative.lambda.runtime.log.KtorLogger
 import io.github.trueangle.knative.lambda.runtime.log.Log
 import io.github.trueangle.knative.lambda.runtime.log.LogLevel
 import io.ktor.client.HttpClient
@@ -33,10 +34,10 @@ object LambdaRuntime {
             json(Json { explicitNulls = false })
         }
         install(Logging) {
-            level = if (Log.currentLogLevel == LogLevel.TRACE) KtorLogLevel.ALL else KtorLogLevel.NONE
-            logger = object : Logger {
-                override fun log(message: String) = Log.trace(message)
-            }
+            val kLogger = KtorLogger()
+            level = kLogger.getLevel()
+            logger = kLogger
+
             filter { it.headers.contains("Lambda-Runtime-Function-Response-Mode") }
         }
     }
@@ -86,7 +87,6 @@ object LambdaRuntime {
                     val response = bufferedResponse(context) { handler.handleRequest(event, context) }
 
                     Log.info("$handlerName invocation completed")
-                    Log.trace("$handlerName's buffered response: $response")
 
                     client.sendResponse(context, response, outputTypeInfo)
                 }
@@ -119,7 +119,7 @@ internal inline fun streamingResponse(crossinline handler: suspend (ByteWriteCha
             try {
                 handler(channel)
             } catch (e: Exception) {
-                Log.warn(e)
+                Log.warn("Exception occurred on streaming: " + e.message)
 
                 channel.writeStringUtf8(e.toTrailer())
             }
