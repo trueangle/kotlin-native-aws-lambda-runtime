@@ -1,15 +1,19 @@
 package io.github.trueangle.knative.lambda.runtime.log
 
 import io.github.trueangle.knative.lambda.runtime.LambdaEnvironment
+import io.github.trueangle.knative.lambda.runtime.LambdaRuntime
 import io.github.trueangle.knative.lambda.runtime.api.Context
+import io.github.trueangle.knative.lambda.runtime.log.Log.write
+import io.ktor.util.reflect.TypeInfo
+import io.ktor.util.reflect.typeInfo
 
 internal interface LogWriter {
     fun write(level: LogLevel, message: Any?)
 }
 
 internal interface LogFormatter {
-    fun format(logLevel: LogLevel, message: Any?): Any?
-    fun onContextAvailable(context: Context) {}
+    fun <T> format(logLevel: LogLevel, message: T?, messageType: TypeInfo): String?
+    fun onContextAvailable(context: Context) = Unit
 }
 
 object Log {
@@ -17,33 +21,33 @@ object Log {
     internal val currentLogLevel = LogLevel.fromEnv()
     private val writer = StdoutLogWriter()
     private val logFormatter = if (LambdaEnvironment.LAMBDA_LOG_FORMAT == "JSON") {
-        JsonLogFormatter()
+        JsonLogFormatter(LambdaRuntime.json)
     } else {
         TextLogFormatter()
     }
 
-    fun trace(message: Any?) {
-        write(LogLevel.TRACE, message)
+    inline fun <reified T> trace(message: T?) {
+        write(LogLevel.TRACE, message, typeInfo<T>())
     }
 
-    fun debug(message: Any?) {
-        write(LogLevel.DEBUG, message)
+    inline fun <reified T> debug(message: T?) {
+        write(LogLevel.DEBUG, message, typeInfo<T>())
     }
 
-    fun info(message: Any?) {
-        write(LogLevel.INFO, message)
+    inline fun <reified T> info(message: T?) {
+        write(LogLevel.INFO, message, typeInfo<T>())
     }
 
-    fun warn(message: Any?) {
-        write(LogLevel.WARN, message)
+    inline fun <reified T> warn(message: T?) {
+        write(LogLevel.WARN, message, typeInfo<T>())
     }
 
-    fun error(message: Any?) {
-        write(LogLevel.ERROR, message)
+    inline fun <reified T> error(message: T?) {
+        write(LogLevel.ERROR, message, typeInfo<T>())
     }
 
-    fun fatal(message: Any?) {
-        write(LogLevel.FATAL, message)
+    inline fun <reified T> fatal(message: T?) {
+        write(LogLevel.FATAL, message, typeInfo<T>())
     }
 
     @PublishedApi
@@ -51,9 +55,10 @@ object Log {
         logFormatter.onContextAvailable(context)
     }
 
-    private fun write(level: LogLevel, message: Any?) {
+    @PublishedApi
+    internal fun write(level: LogLevel, message: Any?, typeInfo: TypeInfo) {
         if (level >= currentLogLevel) {
-            writer.write(level, logFormatter.format(level, message))
+            writer.write(level, logFormatter.format(level, message, typeInfo))
         }
     }
 }

@@ -13,9 +13,10 @@ internal data class LogMessageDto<T>(
     @SerialName("timestamp")
     val timestamp: String,
     @SerialName("message")
+    @Contextual
     val message: T?,
     @SerialName("level")
     val level: LogLevel,
     @SerialName("AWSRequestId")
-    val awsRequestId: String? = null
+    val awsRequestId: String?
 )
