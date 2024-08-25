@@ -3,6 +3,7 @@ package io.github.trueangle.knative.lambda.runtime
 import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.NonRecoverableStateException
 import io.github.trueangle.knative.lambda.runtime.api.Context
 import io.github.trueangle.knative.lambda.runtime.api.LambdaClient
+import io.github.trueangle.knative.lambda.runtime.api.dto.LogMessageDto
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
@@ -23,6 +24,7 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
 import kotlin.system.exitProcess
 import kotlin.time.TimeSource
 import io.ktor.client.plugins.logging.LogLevel as KtorLogLevel
@@ -31,7 +33,9 @@ object LambdaRuntime {
     private val httpClient = HttpClient(Curl) {
         install(HttpTimeout)
         install(ContentNegotiation) {
-            json(Json { explicitNulls = false })
+            json(Json {
+                explicitNulls = false
+            })
         }
         install(Logging) {
             val kLogger = KtorLogger()
