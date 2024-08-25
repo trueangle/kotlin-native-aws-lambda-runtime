@@ -38,7 +38,7 @@ object LambdaRuntime {
             level = kLogger.getLevel()
             logger = kLogger
 
-            filter { it.headers.contains("Lambda-Runtime-Function-Response-Mode") }
+            filter { !it.headers.contains("Lambda-Runtime-Function-Response-Mode", "streaming") }
         }
     }
 
