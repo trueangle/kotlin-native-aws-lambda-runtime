@@ -65,7 +65,7 @@ class JsonLogFormatterTest {
 
     @Test
     fun `GIVEN non-serializable message object WHEN format THEN json`() {
-        val message = NoSerialObject("Hello world")
+        val message = NonSerialObject("Hello world")
 
         every { clock.now() } returns (timestamp)
 
@@ -77,13 +77,31 @@ class JsonLogFormatterTest {
                 awsRequestId = requestId
             )
         )
-        val actual = formatter.format(LogLevel.INFO, message, typeInfo<NoSerialObject>())
+        val actual = formatter.format(LogLevel.INFO, message, typeInfo<NonSerialObject>())
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `GIVEN null message WHEN format THEN json`() {
+        val message = null
+
+        every { clock.now() } returns (timestamp)
+
+        val expected = Json.encodeToString(
+            LogMessageDto(
+                timestamp = timestamp.toString(),
+                message = null,
+                level = LogLevel.INFO,
+                awsRequestId = requestId
+            )
+        )
+        val actual = formatter.format(LogLevel.INFO, message, typeInfo<NonSerialObject>())
 
         assertEquals(expected, actual)
     }
 
     @Serializable
     private data class SampleObject(val hello: String)
-
-    private data class NoSerialObject(val hello: String)
+    private data class NonSerialObject(val hello: String)
 }
