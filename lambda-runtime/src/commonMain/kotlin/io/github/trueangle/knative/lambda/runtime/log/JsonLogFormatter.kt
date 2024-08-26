@@ -2,6 +2,7 @@ package io.github.trueangle.knative.lambda.runtime.log
 
 import io.github.trueangle.knative.lambda.runtime.api.Context
 import io.github.trueangle.knative.lambda.runtime.api.dto.LogMessageDto
+import io.github.trueangle.knative.lambda.runtime.prettyPrint
 import io.ktor.util.reflect.TypeInfo
 import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException

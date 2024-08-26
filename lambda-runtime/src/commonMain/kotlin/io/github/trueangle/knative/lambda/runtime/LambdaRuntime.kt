@@ -9,6 +9,7 @@ import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
 import io.github.trueangle.knative.lambda.runtime.log.KtorLogger
 import io.github.trueangle.knative.lambda.runtime.log.Log
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.curl.Curl
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -28,7 +29,15 @@ object LambdaRuntime {
     @OptIn(ExperimentalSerializationApi::class)
     internal val json = Json { explicitNulls = false }
 
-    private val httpClient = HttpClient(Curl) {
+    inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
+        val curlHttpClient = createHttpClient(Curl.create())
+        val lambdaClient = LambdaClient(curlHttpClient)
+
+        Runner(lambdaClient).run(initHandler)
+    }
+
+    @PublishedApi
+    internal fun createHttpClient(engine: HttpClientEngine) = HttpClient(engine) {
         install(HttpTimeout)
         install(ContentNegotiation) { json(json) }
         install(Logging) {
@@ -39,11 +48,13 @@ object LambdaRuntime {
             filter { !it.headers.contains("Lambda-Runtime-Function-Response-Mode", "streaming") }
         }
     }
+}
 
-    @PublishedApi
-    internal val client = LambdaClient(httpClient)
-
-    inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
+@PublishedApi
+internal class Runner(
+    val client: LambdaClient,
+) {
+    suspend inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) {
         val handler = try {
             Log.info("Initializing Kotlin Native Lambda Runtime")
 
@@ -91,6 +102,7 @@ object LambdaRuntime {
                 }
             } catch (e: LambdaRuntimeException) {
                 Log.error(e)
+
                 client.reportError(e)
             } catch (e: LambdaEnvironmentException) {
                 when (e) {
@@ -109,11 +121,8 @@ object LambdaRuntime {
             }
         }
     }
-}
 
-@PublishedApi
-internal inline fun streamingResponse(crossinline handler: suspend (ByteWriteChannel) -> Unit) =
-    object : WriteChannelContent() {
+    inline fun streamingResponse(crossinline handler: suspend (ByteWriteChannel) -> Unit) = object : WriteChannelContent() {
         override suspend fun writeTo(channel: ByteWriteChannel) {
             try {
                 handler(channel)
@@ -128,9 +137,9 @@ internal inline fun streamingResponse(crossinline handler: suspend (ByteWriteCha
             "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
     }
 
-@PublishedApi
-internal inline fun <T, R> T.bufferedResponse(context: Context, block: T.() -> R): R = try {
-    block()
-} catch (e: Exception) {
-    throw e.asHandlerError(context)
+    inline fun <T, R> T.bufferedResponse(context: Context, block: T.() -> R): R = try {
+        block()
+    } catch (e: Exception) {
+        throw e.asHandlerError(context)
+    }
 }

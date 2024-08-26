@@ -3,7 +3,6 @@ package io.github.trueangle.knative.lambda.runtime.log
 import io.github.trueangle.knative.lambda.runtime.LambdaEnvironment
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntime
 import io.github.trueangle.knative.lambda.runtime.api.Context
-import io.github.trueangle.knative.lambda.runtime.log.Log.write
 import io.ktor.util.reflect.TypeInfo
 import io.ktor.util.reflect.typeInfo
 
@@ -20,7 +19,7 @@ object Log {
     @PublishedApi
     internal val currentLogLevel = LogLevel.fromEnv()
     private val writer = StdoutLogWriter()
-    private val logFormatter = if (LambdaEnvironment.LAMBDA_LOG_FORMAT == "JSON") {
+    private val logFormatter = if (LambdaEnvironment.LAMBDA_LOG_FORMAT.equals("JSON", ignoreCase = true)) {
         JsonLogFormatter(LambdaRuntime.json)
     } else {
         TextLogFormatter()

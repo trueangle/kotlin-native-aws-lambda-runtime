@@ -28,7 +28,10 @@ import io.ktor.http.ContentType.Application.Json as ContentTypeJson
 
 @PublishedApi
 internal class LambdaClient(private val httpClient: HttpClient) {
-    private val invokeUrl = "http://${LambdaEnvironment.RUNTIME_API}/2018-06-01/runtime"
+    private val baseUrl = requireNotNull(LambdaEnvironment.RUNTIME_API) {
+        "Can't find AWS_LAMBDA_RUNTIME_API env variable"
+    }
+    private val invokeUrl = "http://$baseUrl/2018-06-01/runtime"
     private val requestTimeout = 15.minutes.inWholeMilliseconds
 
     suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): Pair<T, Context> {

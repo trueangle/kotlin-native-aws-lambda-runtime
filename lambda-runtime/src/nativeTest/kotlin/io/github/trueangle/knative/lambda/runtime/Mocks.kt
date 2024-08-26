@@ -2,7 +2,7 @@ package io.github.trueangle.knative.lambda.runtime
 
 import io.github.trueangle.knative.lambda.runtime.api.Context
 
-internal fun mockContext(awsRequestId: String) = Context(
+internal fun mockContext(awsRequestId: String = "awsRequestId") = Context(
     awsRequestId = awsRequestId,
     xrayTracingId = "dummyXrayTracingId",
     deadlineTimeInMs = 100,

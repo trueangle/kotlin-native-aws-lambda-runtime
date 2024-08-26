@@ -15,20 +15,33 @@ import platform.posix.getenv
 @OptIn(ExperimentalForeignApi::class)
 @PublishedApi
 internal object LambdaEnvironment {
-    val FUNCTION_MEMORY_SIZE = getenv(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)?.toKString()?.toIntOrNull() ?: 128
-    val LOG_GROUP_NAME: String = getenv(AWS_LAMBDA_LOG_GROUP_NAME)?.toKString().orEmpty()
-    val LOG_STREAM_NAME: String = getenv(AWS_LAMBDA_LOG_STREAM_NAME)?.toKString().orEmpty()
-    val LAMBDA_LOG_LEVEL: String? = getenv(AWS_LAMBDA_LOG_LEVEL)?.toKString()
-    val LAMBDA_LOG_FORMAT: String? = getenv(AWS_LAMBDA_LOG_FORMAT)?.toKString()
-    val FUNCTION_NAME: String = getenv(AWS_LAMBDA_FUNCTION_NAME)?.toKString().orEmpty()
-    val FUNCTION_VERSION: String = getenv(AWS_LAMBDA_FUNCTION_VERSION)?.toKString().orEmpty()
-
-    val RUNTIME_API: String = requireNotNull(getenv(AWS_LAMBDA_RUNTIME_API)?.toKString()) {
-        "Can't find AWS_LAMBDA_RUNTIME_API env variable"
+    val FUNCTION_MEMORY_SIZE by unsafeLazy {
+        getenv(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)?.toKString()?.toIntOrNull() ?: 128
+    }
+    val LOG_GROUP_NAME by unsafeLazy {
+        getenv(AWS_LAMBDA_LOG_GROUP_NAME)?.toKString().orEmpty()
+    }
+    val LOG_STREAM_NAME by unsafeLazy {
+        getenv(AWS_LAMBDA_LOG_STREAM_NAME)?.toKString().orEmpty()
+    }
+    val LAMBDA_LOG_LEVEL by unsafeLazy {
+        getenv(AWS_LAMBDA_LOG_LEVEL)?.toKString() ?: "INFO"
+    }
+    val LAMBDA_LOG_FORMAT by unsafeLazy {
+        getenv(AWS_LAMBDA_LOG_FORMAT)?.toKString() ?: "TEXT"
+    }
+    val FUNCTION_NAME by unsafeLazy {
+        getenv(AWS_LAMBDA_FUNCTION_NAME)?.toKString().orEmpty()
+    }
+    val FUNCTION_VERSION by unsafeLazy {
+        getenv(AWS_LAMBDA_FUNCTION_VERSION)?.toKString().orEmpty()
+    }
+    val RUNTIME_API by unsafeLazy {
+        getenv(AWS_LAMBDA_RUNTIME_API)?.toKString()
     }
 }
 
-private object ReservedRuntimeEnvironmentVariables {
+internal object ReservedRuntimeEnvironmentVariables {
     /**
      * The handler location configured on the function.
      */

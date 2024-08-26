@@ -1,5 +1,6 @@
 package io.github.trueangle.knative.lambda.runtime.log
 
+import io.github.trueangle.knative.lambda.runtime.prettyPrint
 import io.ktor.util.reflect.TypeInfo
 
 internal class TextLogFormatter : LogFormatter {

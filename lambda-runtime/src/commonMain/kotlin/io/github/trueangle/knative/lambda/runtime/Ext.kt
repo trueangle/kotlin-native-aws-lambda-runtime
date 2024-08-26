@@ -1,4 +1,4 @@
-package io.github.trueangle.knative.lambda.runtime.log
+package io.github.trueangle.knative.lambda.runtime
 
 internal fun Throwable.prettyPrint(includeStackTrace: Boolean = true) = buildString {
     append("An exception occurred:\n")
@@ -10,3 +10,5 @@ internal fun Throwable.prettyPrint(includeStackTrace: Boolean = true) = buildStr
         append(stackTraceToString())
     }
 }
+
+internal fun <T> unsafeLazy(initializer: () -> T): Lazy<T> = lazy(LazyThreadSafetyMode.NONE, initializer)
