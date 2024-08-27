@@ -1,3 +1,5 @@
+import dev.mokkery.MockMode
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
@@ -43,3 +45,6 @@ if (isTesting) allOpen {
     annotation("kotlin.Metadata")
 }
 
+mokkery {
+    defaultMockMode.set(MockMode.autoUnit)
+}

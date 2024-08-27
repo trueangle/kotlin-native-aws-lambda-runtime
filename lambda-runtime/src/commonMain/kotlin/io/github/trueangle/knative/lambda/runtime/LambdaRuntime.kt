@@ -7,7 +7,13 @@ import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
 import io.github.trueangle.knative.lambda.runtime.log.KtorLogger
+import io.github.trueangle.knative.lambda.runtime.log.LambdaLogger
 import io.github.trueangle.knative.lambda.runtime.log.Log
+import io.github.trueangle.knative.lambda.runtime.log.debug
+import io.github.trueangle.knative.lambda.runtime.log.error
+import io.github.trueangle.knative.lambda.runtime.log.fatal
+import io.github.trueangle.knative.lambda.runtime.log.info
+import io.github.trueangle.knative.lambda.runtime.log.warn
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.curl.Curl
@@ -33,7 +39,7 @@ object LambdaRuntime {
         val curlHttpClient = createHttpClient(Curl.create())
         val lambdaClient = LambdaClient(curlHttpClient)
 
-        Runner(lambdaClient).run(initHandler)
+        Runner(client = lambdaClient, log = Log).run(false, initHandler)
     }
 
     @PublishedApi
@@ -53,14 +59,15 @@ object LambdaRuntime {
 @PublishedApi
 internal class Runner(
     val client: LambdaClient,
+    val log: LambdaLogger
 ) {
-    suspend inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) {
+    suspend inline fun <reified I, reified O> run(singleEventMode: Boolean = false, crossinline initHandler: () -> LambdaHandler<I, O>) {
         val handler = try {
-            Log.info("Initializing Kotlin Native Lambda Runtime")
+            log.info("Initializing Kotlin Native Lambda Runtime")
 
             initHandler()
         } catch (e: Exception) {
-            Log.fatal(e)
+            log.fatal(e)
 
             client.reportError(e.asInitError())
             exitProcess(1)
@@ -70,54 +77,58 @@ internal class Runner(
         val inputTypeInfo = typeInfo<I>()
         val outputTypeInfo = typeInfo<O>()
 
-        while (true) {
+        var shouldExit = false
+        while (!shouldExit) {
             try {
-                Log.info("Runtime is ready for a new event")
+                log.info("Runtime is ready for a new event")
 
                 val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
 
-                with(Log) {
+                with(log) {
                     setContext(context)
 
                     debug(event)
                     debug(context)
+                    info("$handlerName invocation started")
                 }
-
-                Log.info("$handlerName invocation started")
 
                 if (handler is LambdaStreamHandler<I, *>) {
                     val response = streamingResponse { handler.handleRequest(event, it, context) }
 
-                    Log.info("$handlerName started response streaming")
+                    log.info("$handlerName started response streaming")
 
                     client.streamResponse(context, response)
                 } else {
                     handler as LambdaBufferedHandler<I, O>
                     val response = bufferedResponse(context) { handler.handleRequest(event, context) }
 
-                    Log.info("$handlerName invocation completed")
-                    Log.debug(response)
+                    log.info("$handlerName invocation completed")
+                    log.debug(response)
 
                     client.sendResponse(context, response, outputTypeInfo)
                 }
             } catch (e: LambdaRuntimeException) {
-                Log.error(e)
+                log.error(e)
 
                 client.reportError(e)
             } catch (e: LambdaEnvironmentException) {
                 when (e) {
                     is NonRecoverableStateException -> {
-                        Log.fatal(e)
+                        log.fatal(e)
 
                         exitProcess(1)
                     }
 
-                    else -> Log.error(e)
+                    else -> log.error(e)
                 }
             } catch (e: Throwable) {
-                Log.fatal(e)
+                log.fatal(e)
 
                 exitProcess(1)
+            }
+
+            if (singleEventMode) {
+                shouldExit = singleEventMode
             }
         }
     }
@@ -127,7 +138,7 @@ internal class Runner(
             try {
                 handler(channel)
             } catch (e: Exception) {
-                Log.warn("Exception occurred on streaming: " + e.message)
+                log.warn("Exception occurred on streaming: " + e.message)
 
                 channel.writeStringUtf8(e.toTrailer())
             }
