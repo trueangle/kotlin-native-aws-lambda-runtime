@@ -1,8 +1,10 @@
+import dev.mokkery.MockMode
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.mokkery)
-    alias(libs.plugins.allopen)
+    alias(libs.plugins.kotlinx.resources)
 }
 
 kotlin {
@@ -29,15 +31,15 @@ kotlin {
         }
 
         nativeTest.dependencies {
+            implementation(projects.lambdaEvents)
             implementation(libs.kotlin.test)
+            implementation(libs.kotlin.coroutines.test)
+            implementation(libs.ktor.client.mock)
+            implementation(libs.kotlinx.resources)
         }
     }
 }
 
-fun isTestingTask(name: String) = name.endsWith("Test")
-val isTesting = gradle.startParameter.taskNames.any(::isTestingTask)
-
-if (isTesting) allOpen {
-    annotation("kotlin.Metadata")
+mokkery {
+    defaultMockMode.set(MockMode.autoUnit)
 }
-

@@ -1,12 +1,9 @@
 package com.github.trueangle.knative.lambda.runtime.sample.handler
 
 import io.github.trueangle.knative.lambda.runtime.api.Context
-import io.github.trueangle.knative.lambda.runtime.events.apigateway.APIGatewayProxy
 import io.github.trueangle.knative.lambda.runtime.events.apigateway.APIGatewayV2Request
 import io.github.trueangle.knative.lambda.runtime.events.apigateway.APIGatewayV2Response
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
-import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
-import io.github.trueangle.knative.lambda.runtime.log.Log
 import kotlinx.serialization.Serializable
 
 class ObjectBodyLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGatewayV2Response> {

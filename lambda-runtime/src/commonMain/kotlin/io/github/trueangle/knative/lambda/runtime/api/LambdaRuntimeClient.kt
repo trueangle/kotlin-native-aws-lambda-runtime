@@ -27,11 +27,22 @@ import kotlin.time.Duration.Companion.minutes
 import io.ktor.http.ContentType.Application.Json as ContentTypeJson
 
 @PublishedApi
-internal class LambdaClient(private val httpClient: HttpClient) {
-    private val invokeUrl = "http://${LambdaEnvironment.RUNTIME_API}/2018-06-01/runtime"
+internal interface LambdaClient {
+    suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): Pair<T, Context>
+    suspend fun <T> sendResponse(event: Context, body: T, bodyType: TypeInfo): HttpResponse
+    suspend fun streamResponse(event: Context, outgoingContent: OutgoingContent): HttpResponse
+    suspend fun reportError(error: LambdaRuntimeException)
+}
+
+@PublishedApi
+internal class LambdaClientImpl(private val httpClient: HttpClient): LambdaClient {
+    private val baseUrl = requireNotNull(LambdaEnvironment.RUNTIME_API) {
+        "Can't find AWS_LAMBDA_RUNTIME_API env variable"
+    }
+    private val invokeUrl = "http://$baseUrl/2018-06-01/runtime"
     private val requestTimeout = 15.minutes.inWholeMilliseconds
 
-    suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): Pair<T, Context> {
+    override suspend fun <T> retrieveNextEvent(bodyType: TypeInfo): Pair<T, Context> {
         val response = httpClient.get {
             url("${invokeUrl}/invocation/next")
 
@@ -47,7 +58,7 @@ internal class LambdaClient(private val httpClient: HttpClient) {
         return body to context
     }
 
-    suspend fun <T> sendResponse(event: Context, body: T, bodyType: TypeInfo): HttpResponse {
+    override suspend fun <T> sendResponse(event: Context, body: T, bodyType: TypeInfo): HttpResponse {
         val response = httpClient.post {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")
             contentType(ContentTypeJson)
@@ -64,7 +75,7 @@ internal class LambdaClient(private val httpClient: HttpClient) {
         return validateResponse(response)
     }
 
-    suspend fun streamResponse(event: Context, outgoingContent: OutgoingContent): HttpResponse {
+    override suspend fun streamResponse(event: Context, outgoingContent: OutgoingContent): HttpResponse {
         val response = httpClient.post {
             url("${invokeUrl}/invocation/${event.awsRequestId}/response")
 
@@ -89,13 +100,15 @@ internal class LambdaClient(private val httpClient: HttpClient) {
         return response
     }
 
-    suspend fun reportError(error: LambdaRuntimeException) {
-        val response = when (error) {
+    override suspend fun reportError(error: LambdaRuntimeException) {
+        when (error) {
             is LambdaRuntimeException.Init -> sendInitError(error)
-            is LambdaRuntimeException.Invocation -> sendInvocationError(error)
-        }
+            is LambdaRuntimeException.Invocation -> {
+                val response = sendInvocationError(error)
 
-        validateResponse(response)
+                validateResponse(response)
+            }
+        }
     }
 
     private suspend fun sendInvocationError(

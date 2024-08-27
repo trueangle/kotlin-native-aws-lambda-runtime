@@ -4,6 +4,7 @@ import io.github.trueangle.knative.lambda.runtime.api.Context
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.github.trueangle.knative.lambda.runtime.log.Log
+import io.github.trueangle.knative.lambda.runtime.log.debug
 import io.ktor.utils.io.core.toByteArray
 
 class ByteBodyLambdaHandler : LambdaBufferedHandler<ByteArray, ByteArray> {

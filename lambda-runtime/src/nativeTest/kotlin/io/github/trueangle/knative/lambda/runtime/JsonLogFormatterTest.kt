@@ -101,7 +101,5 @@ class JsonLogFormatterTest {
         assertEquals(expected, actual)
     }
 
-    @Serializable
-    private data class SampleObject(val hello: String)
     private data class NonSerialObject(val hello: String)
 }
