@@ -29,7 +29,7 @@ enum class LogLevel {
 
     companion object {
         fun fromEnv(): LogLevel {
-            val level = LambdaEnvironment.LAMBDA_LOG_LEVEL ?: "INFO"
+            val level = LambdaEnvironment.LAMBDA_LOG_LEVEL
             return runCatching {
                 valueOf(level)
             }.getOrElse {

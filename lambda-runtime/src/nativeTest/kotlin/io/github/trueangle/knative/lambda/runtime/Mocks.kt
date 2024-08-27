@@ -1,6 +1,7 @@
 package io.github.trueangle.knative.lambda.runtime
 
 import io.github.trueangle.knative.lambda.runtime.api.Context
+import kotlinx.serialization.Serializable
 
 internal fun mockContext(awsRequestId: String = "awsRequestId") = Context(
     awsRequestId = awsRequestId,
@@ -13,3 +14,6 @@ internal fun mockContext(awsRequestId: String = "awsRequestId") = Context(
     clientContext = null,
     cognitoIdentity = null
 )
+
+@Serializable
+internal data class SampleObject(val hello: String)

@@ -3,6 +3,7 @@ package io.github.trueangle.knative.lambda.runtime
 import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.NonRecoverableStateException
 import io.github.trueangle.knative.lambda.runtime.api.Context
 import io.github.trueangle.knative.lambda.runtime.api.LambdaClient
+import io.github.trueangle.knative.lambda.runtime.api.LambdaClientImpl
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaHandler
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
@@ -29,7 +30,6 @@ import io.ktor.utils.io.writeStringUtf8
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
-import kotlin.system.exitProcess
 
 object LambdaRuntime {
     @OptIn(ExperimentalSerializationApi::class)
@@ -37,7 +37,7 @@ object LambdaRuntime {
 
     inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
         val curlHttpClient = createHttpClient(Curl.create())
-        val lambdaClient = LambdaClient(curlHttpClient)
+        val lambdaClient = LambdaClientImpl(curlHttpClient)
 
         Runner(client = lambdaClient, log = Log).run(false, initHandler)
     }
@@ -59,7 +59,8 @@ object LambdaRuntime {
 @PublishedApi
 internal class Runner(
     val client: LambdaClient,
-    val log: LambdaLogger
+    val log: LambdaLogger,
+    val env: LambdaEnvironment = LambdaEnvironment()
 ) {
     suspend inline fun <reified I, reified O> run(singleEventMode: Boolean = false, crossinline initHandler: () -> LambdaHandler<I, O>) {
         val handler = try {
@@ -70,7 +71,8 @@ internal class Runner(
             log.fatal(e)
 
             client.reportError(e.asInitError())
-            exitProcess(1)
+
+            env.terminate()
         }
 
         val handlerName = handler::class.simpleName
@@ -116,7 +118,7 @@ internal class Runner(
                     is NonRecoverableStateException -> {
                         log.fatal(e)
 
-                        exitProcess(1)
+                        env.terminate()
                     }
 
                     else -> log.error(e)
@@ -124,7 +126,7 @@ internal class Runner(
             } catch (e: Throwable) {
                 log.fatal(e)
 
-                exitProcess(1)
+                env.terminate()
             }
 
             if (singleEventMode) {

@@ -11,33 +11,40 @@ import io.github.trueangle.knative.lambda.runtime.ReservedRuntimeEnvironmentVari
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import platform.posix.getenv
+import kotlin.system.exitProcess
 
-@OptIn(ExperimentalForeignApi::class)
 @PublishedApi
-internal object LambdaEnvironment {
-    val FUNCTION_MEMORY_SIZE by unsafeLazy {
-        getenv(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)?.toKString()?.toIntOrNull() ?: 128
-    }
-    val LOG_GROUP_NAME by unsafeLazy {
-        getenv(AWS_LAMBDA_LOG_GROUP_NAME)?.toKString().orEmpty()
-    }
-    val LOG_STREAM_NAME by unsafeLazy {
-        getenv(AWS_LAMBDA_LOG_STREAM_NAME)?.toKString().orEmpty()
-    }
-    val LAMBDA_LOG_LEVEL by unsafeLazy {
-        getenv(AWS_LAMBDA_LOG_LEVEL)?.toKString() ?: "INFO"
-    }
-    val LAMBDA_LOG_FORMAT by unsafeLazy {
-        getenv(AWS_LAMBDA_LOG_FORMAT)?.toKString() ?: "TEXT"
-    }
-    val FUNCTION_NAME by unsafeLazy {
-        getenv(AWS_LAMBDA_FUNCTION_NAME)?.toKString().orEmpty()
-    }
-    val FUNCTION_VERSION by unsafeLazy {
-        getenv(AWS_LAMBDA_FUNCTION_VERSION)?.toKString().orEmpty()
-    }
-    val RUNTIME_API by unsafeLazy {
-        getenv(AWS_LAMBDA_RUNTIME_API)?.toKString()
+internal open class LambdaEnvironment {
+    // open due to Mokkery limits
+    open fun terminate(): Nothing = exitProcess(1)
+
+    @OptIn(ExperimentalForeignApi::class)
+    @PublishedApi
+    internal companion object Variables {
+        val FUNCTION_MEMORY_SIZE by unsafeLazy {
+            getenv(AWS_LAMBDA_FUNCTION_MEMORY_SIZE)?.toKString()?.toIntOrNull() ?: 128
+        }
+        val LOG_GROUP_NAME by unsafeLazy {
+            getenv(AWS_LAMBDA_LOG_GROUP_NAME)?.toKString().orEmpty()
+        }
+        val LOG_STREAM_NAME by unsafeLazy {
+            getenv(AWS_LAMBDA_LOG_STREAM_NAME)?.toKString().orEmpty()
+        }
+        val LAMBDA_LOG_LEVEL by unsafeLazy {
+            getenv(AWS_LAMBDA_LOG_LEVEL)?.toKString() ?: "INFO"
+        }
+        val LAMBDA_LOG_FORMAT by unsafeLazy {
+            getenv(AWS_LAMBDA_LOG_FORMAT)?.toKString() ?: "TEXT"
+        }
+        val FUNCTION_NAME by unsafeLazy {
+            getenv(AWS_LAMBDA_FUNCTION_NAME)?.toKString().orEmpty()
+        }
+        val FUNCTION_VERSION by unsafeLazy {
+            getenv(AWS_LAMBDA_FUNCTION_VERSION)?.toKString().orEmpty()
+        }
+        val RUNTIME_API by unsafeLazy {
+            getenv(AWS_LAMBDA_RUNTIME_API)?.toKString()
+        }
     }
 }
 
