@@ -100,6 +100,4 @@ class JsonLogFormatterTest {
 
         assertEquals(expected, actual)
     }
-
-    private data class NonSerialObject(val hello: String)
 }

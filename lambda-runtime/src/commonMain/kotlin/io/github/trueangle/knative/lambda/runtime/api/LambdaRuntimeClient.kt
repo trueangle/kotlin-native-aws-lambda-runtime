@@ -8,9 +8,9 @@ import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.Non
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.EventBodyParseException
 import io.github.trueangle.knative.lambda.runtime.api.dto.toDto
-import io.github.trueangle.knative.lambda.runtime.log.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.retry
 import io.ktor.client.plugins.timeout
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
@@ -47,6 +47,11 @@ internal class LambdaClientImpl(private val httpClient: HttpClient): LambdaClien
             url("${invokeUrl}/invocation/next")
 
             timeout { requestTimeoutMillis = requestTimeout }
+
+            retry {
+                retryOnExceptionOrServerErrors(3)
+                exponentialDelay()
+            }
         }
         val context = contextFromResponseHeaders(response)
         val body = try {

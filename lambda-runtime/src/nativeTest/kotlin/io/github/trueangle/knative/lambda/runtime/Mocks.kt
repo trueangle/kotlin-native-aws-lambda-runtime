@@ -17,3 +17,4 @@ internal fun mockContext(awsRequestId: String = "awsRequestId") = Context(
 
 @Serializable
 internal data class SampleObject(val hello: String)
+internal data class NonSerialObject(val hello: String)

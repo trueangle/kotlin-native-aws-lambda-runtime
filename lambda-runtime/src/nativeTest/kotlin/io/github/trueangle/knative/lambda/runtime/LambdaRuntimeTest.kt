@@ -4,13 +4,14 @@ import com.goncalossilva.resources.Resource
 import dev.mokkery.answering.throws
 import dev.mokkery.every
 import dev.mokkery.matcher.any
-import dev.mokkery.matcher.eq
 import dev.mokkery.mock
 import dev.mokkery.spy
 import dev.mokkery.verify
 import dev.mokkery.verify.VerifyMode.Companion.exactly
 import dev.mokkery.verify.VerifyMode.Companion.not
 import dev.mokkery.verifySuspend
+import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.EventBodyParseException
+import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.HandlerException
 import io.github.trueangle.knative.lambda.runtime.ReservedRuntimeEnvironmentVariables.AWS_LAMBDA_FUNCTION_NAME
 import io.github.trueangle.knative.lambda.runtime.ReservedRuntimeEnvironmentVariables.AWS_LAMBDA_FUNCTION_VERSION
 import io.github.trueangle.knative.lambda.runtime.ReservedRuntimeEnvironmentVariables.AWS_LAMBDA_RUNTIME_API
@@ -24,8 +25,10 @@ import io.github.trueangle.knative.lambda.runtime.log.LogLevel.ERROR
 import io.github.trueangle.knative.lambda.runtime.log.LogLevel.FATAL
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondBadRequest
+import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headers
@@ -41,8 +44,9 @@ import platform.posix.setenv
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
-const val RESOURCES_PATH = "src/nativeTest/resources"
+internal const val RESOURCES_PATH = "src/nativeTest/resources"
 
 class LambdaRuntimeTest {
     private val log = mock<LambdaLogger>()
@@ -71,18 +75,7 @@ class LambdaRuntimeTest {
         val lambdaRunner = createRunner(MockEngine { request ->
             val path = request.url.encodedPath
             when {
-                path.contains("invocation/next") -> respond(
-                    content = ByteReadChannel(lambdaEvent),
-                    status = HttpStatusCode.OK,
-                    headers = headers {
-                        append(HttpHeaders.ContentType, "application/json")
-                        append("Lambda-Runtime-Aws-Request-Id", context.awsRequestId)
-                        append("Lambda-Runtime-Deadline-Ms", context.deadlineTimeInMs.toString())
-                        append("Lambda-Runtime-Invoked-Function-Arn", context.invokedFunctionArn)
-
-                    }
-                )
-
+                path.contains("invocation/next") -> respondNextEventSuccess(lambdaEvent)
                 path.contains("/invocation/${context.awsRequestId}/response") -> respond(
                     content = ByteReadChannel("Ok"),
                     status = HttpStatusCode.Accepted,
@@ -105,6 +98,7 @@ class LambdaRuntimeTest {
         verifySuspend(exactly(1)) { client.sendResponse(context, handlerResponse, typeInfo<String>()) }
         verify(not) { log.log(ERROR, any<Any>(), any()) }
         verify(not) { log.log(FATAL, any<Any>(), any()) }
+        verify(not) { lambdaRunner.env.terminate() }
     }
 
     @Test
@@ -116,17 +110,7 @@ class LambdaRuntimeTest {
         val lambdaRunner = createRunner(MockEngine { request ->
             val path = request.url.encodedPath
             when {
-                path.contains("invocation/next") -> respond(
-                    content = ByteReadChannel(lambdaEventJson),
-                    status = HttpStatusCode.OK,
-                    headers = headers {
-                        append(HttpHeaders.ContentType, "application/json")
-                        append("Lambda-Runtime-Aws-Request-Id", context.awsRequestId)
-                        append("Lambda-Runtime-Deadline-Ms", context.deadlineTimeInMs.toString())
-                        append("Lambda-Runtime-Invoked-Function-Arn", context.invokedFunctionArn)
-                    }
-                )
-
+                path.contains("invocation/next") -> respondNextEventSuccess(lambdaEventJson)
                 path.contains("/invocation/${context.awsRequestId}/response") -> respond(
                     content = ByteReadChannel("Ok"),
                     status = HttpStatusCode.Accepted,
@@ -148,6 +132,7 @@ class LambdaRuntimeTest {
         verifySuspend(exactly(1)) { client.sendResponse(context, handlerResponse, typeInfo<SampleObject>()) }
         verify(not) { log.log(ERROR, any<Any>(), any()) }
         verify(not) { log.log(FATAL, any<Any>(), any()) }
+        verify(not) { lambdaRunner.env.terminate() }
     }
 
     @Test
@@ -194,6 +179,76 @@ class LambdaRuntimeTest {
         verify { log.log(FATAL, any<Any>(), any()) }
     }
 
+    @Test
+    fun `GIVEN api error WHEN retrieveNextEvent THEN terminate`() = runTest {
+        val lambdaRunner = createRunner(MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path.contains("/invocation/next") -> {
+                    respondError(HttpStatusCode.InternalServerError)
+                }
+
+                else -> respondError(HttpStatusCode.Forbidden)
+            }
+        })
+        val handler = object : LambdaBufferedHandler<String, String> {
+            override suspend fun handleRequest(input: String, context: Context) = ""
+        }
+
+        assertFailsWith<TerminateException> {
+            lambdaRunner.run(singleEventMode = true) { handler }
+        }
+        verify(not) { log.log(ERROR, any<Any>(), any()) }
+        verify { log.log(FATAL, any<Any>(), any()) }
+    }
+
+    @Test
+    fun `GIVEN EventBodyParseException WHEN retrieveNextEvent THEN report error AND continue working`() = runTest {
+        val event = NonSerialObject("")
+        val lambdaRunner = createRunner(MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path.contains("invocation/next") -> respondNextEventSuccess(event.toString())
+                path.contains("${context.awsRequestId}/error") -> respond("", HttpStatusCode.Accepted)
+                else -> respondBadRequest()
+            }
+        })
+        val client = lambdaRunner.client
+        val handler = object : LambdaBufferedHandler<NonSerialObject, String> {
+            override suspend fun handleRequest(input: NonSerialObject, context: Context) = ""
+        }
+
+        lambdaRunner.run(singleEventMode = true) { handler }
+
+        verifySuspend { client.reportError(any<EventBodyParseException>()) }
+        verify { log.log(ERROR, any<Any>(), any()) }
+        verify(not) { log.log(FATAL, any<Any>(), any()) }
+        verify(not) { lambdaRunner.env.terminate() }
+    }
+
+    @Test
+    fun `GIVEN Handler exception WHEN handleRequest THEN report error AND continue working`() = runTest {
+        val lambdaRunner = createRunner(MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path.contains("invocation/next") -> respondNextEventSuccess("")
+                path.contains("${context.awsRequestId}/error") -> respond("", HttpStatusCode.Accepted)
+                else -> respondBadRequest()
+            }
+        })
+        val client = lambdaRunner.client
+        val handler = object : LambdaBufferedHandler<String, String> {
+            override suspend fun handleRequest(input: String, context: Context) = throw RuntimeException()
+        }
+
+        lambdaRunner.run(singleEventMode = true) { handler }
+
+        verifySuspend { client.reportError(any<HandlerException>()) }
+        verify { log.log(ERROR, any<HandlerException>(), any()) }
+        verify(not) { log.log(FATAL, any<Any>(), any()) }
+        verify(not) { lambdaRunner.env.terminate() }
+    }
+
     @OptIn(ExperimentalForeignApi::class)
     private fun mockEnvironment() {
         if (getenv(AWS_LAMBDA_FUNCTION_NAME)?.toKString().isNullOrEmpty()) {
@@ -217,6 +272,17 @@ class LambdaRuntimeTest {
         val lambdaClient = spy<LambdaClient>(client)
         return Runner(lambdaClient, log, env)
     }
+
+    private fun MockRequestHandleScope.respondNextEventSuccess(lambdaEvent: String) = respond(
+        content = ByteReadChannel(lambdaEvent),
+        status = HttpStatusCode.OK,
+        headers = headers {
+            append(HttpHeaders.ContentType, "application/json")
+            append("Lambda-Runtime-Aws-Request-Id", context.awsRequestId)
+            append("Lambda-Runtime-Deadline-Ms", context.deadlineTimeInMs.toString())
+            append("Lambda-Runtime-Invoked-Function-Arn", context.invokedFunctionArn)
+        }
+    )
 
     private class InitErrorHandler : LambdaBufferedHandler<String, String> {
         init {
