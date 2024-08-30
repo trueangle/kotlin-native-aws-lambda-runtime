@@ -9,7 +9,6 @@ import io.github.trueangle.knative.lambda.runtime.log.LogLevel
 import io.ktor.util.reflect.typeInfo
 import kotlinx.datetime.Clock
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -97,6 +96,25 @@ class JsonLogFormatterTest {
             )
         )
         val actual = formatter.format(LogLevel.INFO, message, typeInfo<NonSerialObject>())
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `GIVEN throwable message WHEN format THEN json`() {
+        val message = RuntimeException("Runtime exception occurred")
+
+        every { clock.now() } returns (timestamp)
+
+        val expected = Json.encodeToString(
+            LogMessageDto(
+                timestamp = timestamp.toString(),
+                message = message.asSerialObject(),
+                level = LogLevel.INFO,
+                awsRequestId = requestId
+            )
+        )
+        val actual = formatter.format(LogLevel.INFO, message, typeInfo<RuntimeException>())
 
         assertEquals(expected, actual)
     }

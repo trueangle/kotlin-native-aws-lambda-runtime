@@ -2,7 +2,7 @@ package io.github.trueangle.knative.lambda.runtime.log
 
 import io.github.trueangle.knative.lambda.runtime.api.Context
 import io.github.trueangle.knative.lambda.runtime.api.dto.LogMessageDto
-import io.github.trueangle.knative.lambda.runtime.prettyPrint
+import io.github.trueangle.knative.lambda.runtime.asSerialObject
 import io.ktor.util.reflect.TypeInfo
 import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException
@@ -18,17 +18,29 @@ internal class JsonLogFormatter(
 
     override fun <T> format(logLevel: LogLevel, message: T?, messageType: TypeInfo): String {
         val json = try {
-            val messageSerializer = serializer(messageType.reifiedType)
-            val dtoSerializer = LogMessageDto.serializer(messageSerializer)
-            json.encodeToString(
-                dtoSerializer,
-                LogMessageDto(
-                    timestamp = clock.now().toString(),
-                    message = if (message is Throwable) message.prettyPrint() else message,
-                    level = logLevel,
-                    awsRequestId = requestContext?.awsRequestId
+            if (message is Throwable) {
+                json.encodeToString(
+                    LogMessageDto(
+                        timestamp = clock.now().toString(),
+                        message = message.asSerialObject(),
+                        level = logLevel,
+                        awsRequestId = requestContext?.awsRequestId
+                    )
                 )
-            )
+            } else {
+                val messageSerializer = serializer(messageType.reifiedType)
+                val dtoSerializer = LogMessageDto.serializer(messageSerializer)
+
+                json.encodeToString(
+                    dtoSerializer,
+                    LogMessageDto(
+                        timestamp = clock.now().toString(),
+                        message = message,
+                        level = logLevel,
+                        awsRequestId = requestContext?.awsRequestId
+                    )
+                )
+            }
         } catch (e: SerializationException) {
             json.encodeToString(
                 LogMessageDto(

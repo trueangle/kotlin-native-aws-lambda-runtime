@@ -20,7 +20,9 @@ import io.github.trueangle.knative.lambda.runtime.api.LambdaClient
 import io.github.trueangle.knative.lambda.runtime.api.LambdaClientImpl
 import io.github.trueangle.knative.lambda.runtime.events.apigateway.APIGatewayRequest
 import io.github.trueangle.knative.lambda.runtime.handler.LambdaBufferedHandler
+import io.github.trueangle.knative.lambda.runtime.handler.LambdaStreamHandler
 import io.github.trueangle.knative.lambda.runtime.log.LambdaLogger
+import io.github.trueangle.knative.lambda.runtime.log.Log
 import io.github.trueangle.knative.lambda.runtime.log.LogLevel.ERROR
 import io.github.trueangle.knative.lambda.runtime.log.LogLevel.FATAL
 import io.ktor.client.engine.HttpClientEngine
@@ -29,15 +31,24 @@ import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondBadRequest
 import io.ktor.client.engine.mock.respondError
+import io.ktor.client.engine.mock.respondOk
+import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.ChannelWriterContent
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headers
 import io.ktor.http.headersOf
 import io.ktor.util.reflect.typeInfo
 import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.copyTo
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.Buffer
+import kotlinx.io.RawSource
+import kotlinx.io.Source
 import kotlinx.serialization.json.Json
 import platform.posix.getenv
 import platform.posix.setenv
@@ -49,7 +60,7 @@ import kotlin.test.assertTrue
 internal const val RESOURCES_PATH = "src/nativeTest/resources"
 
 class LambdaRuntimeTest {
-    private val log = mock<LambdaLogger>()
+    private val log = spy<LambdaLogger>(Log)
     private val context = Context(
         awsRequestId = "156cb537-e2d4-11e8-9b34-d36013741fb9",
         deadlineTimeInMs = 1542409706888L,
@@ -203,7 +214,7 @@ class LambdaRuntimeTest {
     }
 
     @Test
-    fun `GIVEN EventBodyParseException WHEN retrieveNextEvent THEN report error AND continue working`() = runTest {
+    fun `GIVEN EventBodyParseException WHEN retrieveNextEvent THEN report error AND skip event`() = runTest {
         val event = NonSerialObject("")
         val lambdaRunner = createRunner(MockEngine { request ->
             val path = request.url.encodedPath
@@ -227,7 +238,7 @@ class LambdaRuntimeTest {
     }
 
     @Test
-    fun `GIVEN Handler exception WHEN handleRequest THEN report error AND continue working`() = runTest {
+    fun `GIVEN Handler exception WHEN handleRequest THEN report error AND skip event`() = runTest {
         val lambdaRunner = createRunner(MockEngine { request ->
             val path = request.url.encodedPath
             when {
@@ -245,6 +256,43 @@ class LambdaRuntimeTest {
 
         verifySuspend { client.reportError(any<HandlerException>()) }
         verify { log.log(ERROR, any<HandlerException>(), any()) }
+        verify(not) { log.log(FATAL, any<Any>(), any()) }
+        verify(not) { lambdaRunner.env.terminate() }
+    }
+
+    @Test
+    fun `GIVEN Handler exception WHEN streamingResponse THEN consume error`() = runTest {
+        val lambdaRunner = createRunner(MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path.contains("invocation/next") -> respondNextEventSuccess("")
+                path.contains("${context.awsRequestId}/response") -> {
+                    println(request.body.contentLength)
+                    println(request.body.status)
+                    respond("", HttpStatusCode.Accepted)
+                }
+
+                else -> respondBadRequest()
+            }
+        })
+        val client = lambdaRunner.client
+
+        val handler = object : LambdaStreamHandler<String, ByteWriteChannel> {
+            override suspend fun handleRequest(input: String, output: ByteWriteChannel, context: Context) {
+                output.writeMidstreamError(RuntimeException())
+                ByteReadChannel("").copyTo(output)
+            }
+        }
+
+        lambdaRunner.run(singleEventMode = true) { handler }
+
+        //assertTrue(request.body is ByteWriteChannel)
+
+        //val condition = body?.trailers()?.contains(RuntimeException().toTrailer())
+
+        // assertTrue(condition == true)
+
+        verifySuspend { client.streamResponse(any(), any()) }
         verify(not) { log.log(FATAL, any<Any>(), any()) }
         verify(not) { lambdaRunner.env.terminate() }
     }

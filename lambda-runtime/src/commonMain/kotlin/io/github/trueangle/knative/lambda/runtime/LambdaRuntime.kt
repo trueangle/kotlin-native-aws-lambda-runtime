@@ -14,6 +14,7 @@ import io.github.trueangle.knative.lambda.runtime.log.debug
 import io.github.trueangle.knative.lambda.runtime.log.error
 import io.github.trueangle.knative.lambda.runtime.log.fatal
 import io.github.trueangle.knative.lambda.runtime.log.info
+import io.github.trueangle.knative.lambda.runtime.log.trace
 import io.github.trueangle.knative.lambda.runtime.log.warn
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
@@ -141,13 +142,11 @@ internal class Runner(
                 handler(channel)
             } catch (e: Exception) {
                 log.warn("Exception occurred on streaming: " + e.message)
+                log.error(e)
 
-                channel.writeStringUtf8(e.toTrailer())
+                channel.writeMidstreamError(e)
             }
         }
-
-        private fun Throwable.toTrailer(): String =
-            "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
     }
 
     inline fun <T, R> T.bufferedResponse(context: Context, block: T.() -> R): R = try {
@@ -156,3 +155,8 @@ internal class Runner(
         throw e.asHandlerError(context)
     }
 }
+
+suspend fun ByteWriteChannel.writeMidstreamError(e: Throwable) = writeStringUtf8(e.toTrailer())
+
+internal fun Throwable.toTrailer(): String =
+    "Lambda-Runtime-Function-Error-Type: Runtime.StreamError\r\nLambda-Runtime-Function-Error-Body: ${stackTraceToString().encodeBase64()}\r\n"
