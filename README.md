@@ -194,7 +194,7 @@ https://aws.amazon.com/blogs/compute/introducing-advanced-logging-controls-for-a
 To log lambda function code, use the global Log object with extension functions. The log message
 accepts any object / primitive type.
 
-```
+```kotlin
 Log.trace(message: T?) // The most fine-grained information used to trace the path of your code's execution
 
 Log.debug(message: T?) // Detailed information for system debugging
