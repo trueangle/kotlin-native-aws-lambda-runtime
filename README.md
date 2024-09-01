@@ -28,8 +28,6 @@ including Java), visit https://maxday.github.io/lambda-perf/.
 
 ## Getting started
 
-If you have never used AWS Lambda before, check out this getting started guide.
-
 To create a simple lambda function, follow the following steps:
 
 1. Create Kotlin multiplatform project
@@ -116,18 +114,22 @@ class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> 
 }
 ```
 
-5. Specify application entry point using standard `main`. Call `LambdaRuntime.run` to execute Lambda
+5. Specify application entry point using standard `main` function. Call `LambdaRuntime.run` to
+   execute Lambda
    by passing handler to it.
 
 ```kotlin
 fun main() = LambdaRuntime.run { HelloWorldLambdaHandler() }
 ```
 
+For SampleStreamingHandler
+
 ```kotlin
-// or SampleStreamingHandler for streaming lambda
 fun main() = LambdaRuntime.run { SampleStreamingHandler() }
 
 ```
+
+For more examples refer to project's sample.
 
 ## Testing Runtime locally
 
@@ -145,6 +147,39 @@ used:
 6. `docker ps; docker stop CONTAINER_ID` to stop the execution
 
 ## Build and deploy to AWS
+
+1. Execute `./gradlew build`
+2. After successful build execute `cd YOUR_MODULE/build/bin/linuxX64/releaseExecutable/` this will
+   locate Lambda handler's executable file, e.g. `YOUR_MODULE.kexe`. The name of the file (including
+   the extension) will be used as `handler` name. Don't forget to specify it upon
+   lambda-function creation.
+3.
+Execute `(echo '#!/bin/sh' > bootstrap && echo './"$_HANDLER"' >> bootstrap && chmod +x bootstrap && zip -r bootstrap.zip ./*)`
+4. Deploy bootstrap.zip archive to AWS. If you have never used AWS Lambda
+   before, [learn how to deploy Lambda function as zip archive manually](https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-zip.html)
+   or
+   using [AWS CLI](https://docs.aws.amazon.com/codedeploy/latest/userguide/getting-started-codedeploy.html):
+
+```bash
+$ aws lambda create-function --function-name sample \
+  --handler sample.kexe \ # Important to specify the name of the Lambda\'s executable
+  --zip-file bootstrap.zip \
+  --runtime provided.al2023 \ # Change this to provided.al2 if you would like to use Amazon Linux 2
+  --role arn:aws:iam::XXXXXXXXXXXXX:role/your_lambda_execution_role \
+  --environment Variables={RUST_BACKTRACE=1} \
+  --tracing-config Mode=Active
+```
+
+You can now test the function using the AWS CLI or the AWS Lambda console
+
+```bash
+$ aws lambda invoke
+--cli-binary-format raw-in-base64-out \
+--function-name sample \
+--payload '{"command": "Say Hi!"}' \
+output.json
+$ cat output.json 
+```
 
 ## Logging
 
@@ -194,10 +229,11 @@ Log.fatal(message: T?) // Messages about serious errors that cause the applicati
   machine [uses different curl version from what is requested by the runtime](https://youtrack.jetbrains.com/issue/KTOR-6361/Curl-Error-linking-curl-in-linkDebugExecutableLinuxX64-on-macOS).
   To solve that either
   use [Gihub Actions workflow](https://github.com/trueangle/kotlin-native-aws-lambda-runtime/actions/workflows/buildLinux86_64.yml)
-  or local docker container with ubuntu 22 under the hood. Example:
-  ```bash
+  or local docker container with ubuntu 22 under the hood. Example [Dockerfile](Dockerfile) and
+  build command:
+
+```bash
 
 docker build -t sample .
 docker run --rm -v $(pwd):/sample -w /sample sample ./gradlew build
-
 ```
