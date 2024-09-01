@@ -101,7 +101,7 @@ Streaming function, on the other hand, sends back data as soon as it's available
 waiting for all the data to be ready. It processes and returns the response in chunks, piece by
 piece, which can be useful when you want to start delivering results right away, especially for
 large or ongoing tasks. This allows for faster responses and can handle data as it comes
-in. [More details here.](https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html).
+in. [More details here](https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html).
 For example, `SampleStreamingHandler` reads a large json file and streams it by chunks.
 
 ```kotlin
@@ -154,8 +154,7 @@ used. Here's how to run project's sample:
    locate Lambda handler's executable file, e.g. `YOUR_MODULE.kexe`. The name of the file (including
    the extension) will be used as `handler` name. Don't forget to specify it upon
    lambda-function creation.
-3.
-Execute `(echo '#!/bin/sh' > bootstrap && echo './"$_HANDLER"' >> bootstrap && chmod +x bootstrap && zip -r bootstrap.zip ./*)`
+3. Execute `(echo '#!/bin/sh' > bootstrap && echo './"$_HANDLER"' >> bootstrap && chmod +x bootstrap && zip -r bootstrap.zip ./*)`
 4. Deploy bootstrap.zip archive to AWS. If you have never used AWS Lambda
    before, [learn how to deploy Lambda function as zip archive manually](https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-zip.html)
    or
@@ -163,7 +162,7 @@ Execute `(echo '#!/bin/sh' > bootstrap && echo './"$_HANDLER"' >> bootstrap && c
 
 ```bash
 $ aws lambda create-function --function-name sample \
-  --handler sample.kexe \ # Important to specify the name of the Lambda\'s executable
+  --handler sample.kexe \ # Important to specify the name of the Lambda executable
   --zip-file bootstrap.zip \
   --runtime provided.al2023 \ # Change this to provided.al2 if you would like to use Amazon Linux 2
   --role arn:aws:iam::XXXXXXXXXXXXX:role/your_lambda_execution_role \
@@ -186,7 +185,7 @@ $ cat output.json
 
 The Runtime uses AWS logging conventions for enhanced log capture, supporting String and JSON log
 output
-format. It also allows you to dynamically control log levels without altering your code, simplifying
+format. It also allows to dynamically control log levels without altering your code, simplifying
 the debugging process. Additionally, you can direct logs to specific Amazon CloudWatch log groups,
 making log management and aggregation more efficient at scale. More details on how to set log format
 and level refer to the article.
