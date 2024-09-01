@@ -1,6 +1,5 @@
 FROM public.ecr.aws/lambda/provided:al2
 
-#todo file name
 COPY sample/build/bin/linuxX64/releaseExecutable/sample.kexe /var/runtime/bootstrap
 
 COPY large-file.json /var/task/large-file.json

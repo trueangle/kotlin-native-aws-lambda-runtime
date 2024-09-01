@@ -8,14 +8,9 @@ import kotlinx.serialization.Serializable
 
 class ObjectBodyLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGatewayV2Response> {
     override suspend fun handleRequest(input: APIGatewayV2Request, context: Context): APIGatewayV2Response {
-        /*  Log.info(input)
-          Log.info(context)
-          Log.fatal(RuntimeException())*/
-        //Log.info(input.question + "\n answer is Hello world")
-
         return APIGatewayV2Response(
             statusCode = 200,
-            body = "\n answer is Hello world",
+            body = "Answer is Hello world",
             cookies = null,
             headers = null,
             isBase64Encoded = false
