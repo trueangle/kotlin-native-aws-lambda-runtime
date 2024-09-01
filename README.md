@@ -28,26 +28,30 @@ including Java), visit https://maxday.github.io/lambda-perf/.
 
 ## Getting started
 
-If you have never used AWS Lambda before, check out this getting started guide. 
+If you have never used AWS Lambda before, check out this getting started guide.
 
 To create a simple lambda function, follow the following steps:
+
 1. Create Kotlin multiplatform project
 2. Include library dependency into your module-level build.gradle file
+
 ```kotlin
 //..
 kotlin {
     //..
     sourceSets {
         nativeMain.dependencies {
-            implementation("io.github.trueangle:lambda-runtime:0.0.1") 
-            implementation("io.github.trueangle:lambda-events:0.0.1")
+            implementation("io.github.trueangle:lambda-runtime:0.0.2")
+            implementation("io.github.trueangle:lambda-events:0.0.2")
         }
     }
     //..
 }
 //..
 ```
+
 3. Specify application entry point reference and supported targets
+
 ```kotlin
 //..
 kotlin {
@@ -68,15 +72,20 @@ kotlin {
 }
 //..
 ```
+
 4. Choose lambda function type.
 
 There are two types of lambda functions:
 
-**Buffered** Lambda function collects all the data it needs to return as a response before sending it back. This is a default behavior of Lambda function. Response payload max size: 6 MB.
+**Buffered** Lambda function collects all the data it needs to return as a response before sending
+it back. This is a default behavior of Lambda function. Response payload max size: 6 MB.
 
 ```kotlin
 class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGatewayV2Response> {
-    override suspend fun handleRequest(input: APIGatewayV2Request, context: Context): APIGatewayV2Response {
+    override suspend fun handleRequest(
+        input: APIGatewayV2Request,
+        context: Context
+    ): APIGatewayV2Response {
         return APIGatewayV2Response(
             statusCode = 200,
             body = "Hello world",
@@ -88,23 +97,33 @@ class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGa
 }
 ```
 
-**Streaming** functions, on the other hand, process events in real-time as they arrive, without any
-intermediate buffering. This method is well-suited for use cases requiring immediate data
-processing, such as real-time analytics or event-driven architectures where low-latency responses
-are crucial. [More details here.](https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html)
+**Streaming** functions, on the other hand, sends back data as soon as it's available, rather than
+waiting for all the data to be ready. It processes and returns the response in chunks, piece by
+piece, which can be useful when you want to start delivering results right away, especially for
+large or ongoing tasks. This allows for faster responses and can handle data as it comes
+in. [More details here.](https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html).
+For example, `SampleStreamingHandler` reads a large json file and streams it by chunks.
 
 ```kotlin
 class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> {
-    override suspend fun handleRequest(input: ByteArray, output: ByteWriteChannel, context: Context) {
+    override suspend fun handleRequest(
+        input: ByteArray,
+        output: ByteWriteChannel,
+        context: Context
+    ) {
         ByteReadChannel(SystemFileSystem.source(Path("hello.json")).buffered()).copyTo(output)
     }
 }
 ```
 
-5. Specify application entry point using standard `main`. Call `LambdaRuntime.run` to execute Lambda by passing handler to it.
+5. Specify application entry point using standard `main`. Call `LambdaRuntime.run` to execute Lambda
+   by passing handler to it.
+
 ```kotlin
 fun main() = LambdaRuntime.run { HelloWorldLambdaHandler() }
+```
 
+```kotlin
 // or SampleStreamingHandler for streaming lambda
 fun main() = LambdaRuntime.run { SampleStreamingHandler() }
 
@@ -170,3 +189,15 @@ Log.fatal(message: T?) // Messages about serious errors that cause the applicati
        2.0.20-RC2) https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-native-prebuilt/2.0.20-RC2/
     2. Opened
        issue: https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
+- If you are running the project build on MacOs you might come across a set of errors connected with
+  curl linking e.g. `ld.lld: error: undefined symbol: curl_global_init`. This means that your local
+  machine [uses different curl version from what is requested by the runtime](https://youtrack.jetbrains.com/issue/KTOR-6361/Curl-Error-linking-curl-in-linkDebugExecutableLinuxX64-on-macOS).
+  To solve that either
+  use [Gihub Actions workflow](https://github.com/trueangle/kotlin-native-aws-lambda-runtime/actions/workflows/buildLinux86_64.yml)
+  or local docker container with ubuntu 22 under the hood. Example:
+  ```bash
+
+docker build -t sample .
+docker run --rm -v $(pwd):/sample -w /sample sample ./gradlew build
+
+```

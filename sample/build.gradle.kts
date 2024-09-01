@@ -19,11 +19,11 @@ kotlin {
 
     sourceSets {
         nativeMain.dependencies {
-            implementation(projects.lambdaRuntime)
-            implementation(projects.lambdaEvents)
+          /*  implementation(projects.lambdaRuntime)
+            implementation(projects.lambdaEvents)*/
             implementation(libs.kotlin.serialization.json)
-            /*implementation("io.github.trueangle:lambda-runtime:0.0.1")
-            implementation("io.github.trueangle:lambda-events:0.0.1")*/
+            implementation("io.github.trueangle:lambda-runtime:0.0.2")
+            implementation("io.github.trueangle:lambda-events:0.0.2")
         }
     }
 }
