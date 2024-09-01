@@ -10,7 +10,7 @@ class ObjectBodyLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGa
     override suspend fun handleRequest(input: APIGatewayV2Request, context: Context): APIGatewayV2Response {
         return APIGatewayV2Response(
             statusCode = 200,
-            body = "Answer is Hello world",
+            body = "Hello world",
             cookies = null,
             headers = null,
             isBase64Encoded = false

@@ -11,6 +11,6 @@ import kotlinx.io.files.SystemFileSystem
 
 class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> {
     override suspend fun handleRequest(input: ByteArray, output: ByteWriteChannel, context: Context) {
-        ByteReadChannel(SystemFileSystem.source(Path("o.json")).buffered()).copyTo(output)
+        ByteReadChannel(SystemFileSystem.source(Path("hello.json")).buffered()).copyTo(output)
     }
 }

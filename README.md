@@ -28,15 +28,73 @@ including Java), visit https://maxday.github.io/lambda-perf/.
 
 ## Getting started
 
+If you have never used AWS Lambda before, check out this getting started guide. 
+
+To create a simple lambda function, follow the following steps:
+1. Create Kotlin multiplatform project
+2. Include library dependency into your module-level build.gradle file
+```
+kotlin {
+    sourceSets {
+        nativeMain.dependencies {
+            implementation("io.github.trueangle:lambda-runtime:0.0.1") 
+            implementation("io.github.trueangle:lambda-events:0.0.1")
+        }
+    }
+```
+3. Specify application entry point reference and supported targets
+```
+kotlin {
+    //..
+    listOf(
+        macosArm64(),
+        macosX64(),
+        linuxArm64(),
+        linuxX64(),
+    ).forEach {
+        it.binaries {
+            executable {
+                entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main"
+            }
+        }
+    }
+    //..
+}
+```
+4. Choose lambda function type
 There are two types of lambda functions:
 
-### Buffered handler
+### Buffered
+Buffered functions process incoming events by first collecting them
+into a buffer before execution. This is a default behavior.
 
-tbd
+```
+class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGatewayV2Response> {
+    override suspend fun handleRequest(input: APIGatewayV2Request, context: Context): APIGatewayV2Response {
+        return APIGatewayV2Response(
+            statusCode = 200,
+            body = "Hello world",
+            cookies = null,
+            headers = null,
+            isBase64Encoded = false
+        )
+    }
+}
+```
 
-### Streaming handler
+### Streaming
+Streaming functions, on the other hand, process events in real-time as they arrive, without any
+intermediate buffering. This method is well-suited for use cases requiring immediate data
+processing, such as real-time analytics or event-driven architectures where low-latency responses
+are crucial.
 
-tbd
+```
+class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> {
+    override suspend fun handleRequest(input: ByteArray, output: ByteWriteChannel, context: Context) {
+        ByteReadChannel(SystemFileSystem.source(Path("hello.json")).buffered()).copyTo(output)
+    }
+}
+```
 
 ## Testing Runtime locally
 
@@ -57,13 +115,16 @@ used:
 
 ## Logging
 
-The Runtime uses AWS logging conventions for enhanced log capture, supporting String and JSON log output
+The Runtime uses AWS logging conventions for enhanced log capture, supporting String and JSON log
+output
 format. It also allows you to dynamically control log levels without altering your code, simplifying
 the debugging process. Additionally, you can direct logs to specific Amazon CloudWatch log groups,
-making log management and aggregation more efficient at scale. More details on how to set log format and level refer to the article. 
+making log management and aggregation more efficient at scale. More details on how to set log format
+and level refer to the article.
 https://aws.amazon.com/blogs/compute/introducing-advanced-logging-controls-for-aws-lambda-functions/
 
-To log lambda function code, use the global Log object with extension functions. The log message accepts any object / primitive type.
+To log lambda function code, use the global Log object with extension functions. The log message
+accepts any object / primitive type.
 
 ```
 Log.trace(message: T?) // The most fine-grained information used to trace the path of your code's execution
@@ -78,7 +139,6 @@ Log.error(message: T?) // Messages about problems that prevent the code from per
 
 Log.fatal(message: T?) // Messages about serious errors that cause the application to stop functioning
 ```
-
 
 ## Troubleshoot
 
