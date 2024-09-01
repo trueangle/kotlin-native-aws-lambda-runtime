@@ -75,7 +75,7 @@ kotlin {
 
 There are two types of lambda functions:
 
-###Buffered 
+### Buffered 
 Buffered Lambda function collects all the data it needs to return as a response before sending
 it back. This is a default behavior of Lambda function. Response payload max size: 6 MB.
 
@@ -96,7 +96,7 @@ class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGa
 }
 ```
 
-###Streaming
+### Streaming
 Streaming function, on the other hand, sends back data as soon as it's available, rather than
 waiting for all the data to be ready. It processes and returns the response in chunks, piece by
 piece, which can be useful when you want to start delivering results right away, especially for
