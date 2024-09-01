@@ -72,8 +72,7 @@ kotlin {
 
 There are two types of lambda functions:
 
-**Buffered** functions process incoming events by first collecting them
-into a buffer before execution. This is a default behavior.
+**Buffered** Lambda function collects all the data it needs to return as a response before sending it back. This is a default behavior of Lambda function. Response payload max size: 6 MB.
 
 ```kotlin
 class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGatewayV2Response> {
@@ -92,7 +91,7 @@ class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGa
 **Streaming** functions, on the other hand, process events in real-time as they arrive, without any
 intermediate buffering. This method is well-suited for use cases requiring immediate data
 processing, such as real-time analytics or event-driven architectures where low-latency responses
-are crucial.
+are crucial. [More details here.](https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html)
 
 ```kotlin
 class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> {
@@ -102,9 +101,13 @@ class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> 
 }
 ```
 
-5. Specify application entry point using standard `main` and `LambdaRuntime.run` functions
+5. Specify application entry point using standard `main`. Call `LambdaRuntime.run` to execute Lambda by passing handler to it.
 ```kotlin
-fun main() = LambdaRuntime.run { HelloWorldLambdaHandler() } // or SampleStreamingHandler for streaming lambda
+fun main() = LambdaRuntime.run { HelloWorldLambdaHandler() }
+
+// or SampleStreamingHandler for streaming lambda
+fun main() = LambdaRuntime.run { SampleStreamingHandler() }
+
 ```
 
 ## Testing Runtime locally
