@@ -75,7 +75,8 @@ kotlin {
 
 There are two types of lambda functions:
 
-**Buffered** Lambda function collects all the data it needs to return as a response before sending
+###Buffered 
+Buffered Lambda function collects all the data it needs to return as a response before sending
 it back. This is a default behavior of Lambda function. Response payload max size: 6 MB.
 
 ```kotlin
@@ -95,7 +96,8 @@ class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGa
 }
 ```
 
-**Streaming** functions, on the other hand, sends back data as soon as it's available, rather than
+###Streaming
+Streaming function, on the other hand, sends back data as soon as it's available, rather than
 waiting for all the data to be ready. It processes and returns the response in chunks, piece by
 piece, which can be useful when you want to start delivering results right away, especially for
 large or ongoing tasks. This allows for faster responses and can handle data as it comes
@@ -122,7 +124,7 @@ class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> 
 fun main() = LambdaRuntime.run { HelloWorldLambdaHandler() }
 ```
 
-For SampleStreamingHandler
+Or for SampleStreamingHandler
 
 ```kotlin
 fun main() = LambdaRuntime.run { SampleStreamingHandler() }
@@ -133,9 +135,9 @@ For more examples refer to project's sample.
 
 ## Testing Runtime locally
 
-To run local runtime
+To run runtime
 locally [aws runtime emulator](https://github.com/aws/aws-lambda-runtime-interface-emulator) is
-used:
+used. Here's how to run project's sample:
 
 1. `./gradlew build` to build lambda executable
 2. Modify runtime-emulator/Dockerfile to set proper path to the generated executable (.kexe) file,
@@ -144,7 +146,6 @@ used:
 4. Start server `docker run -p 9000:8080 sample:latest`
 5. Execute function
    via `curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'`
-6. `docker ps; docker stop CONTAINER_ID` to stop the execution
 
 ## Build and deploy to AWS
 
