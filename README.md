@@ -35,12 +35,15 @@ To create a simple lambda function, follow the following steps:
 2. Include library dependency into your module-level build.gradle file
 ```
 kotlin {
+    //..
     sourceSets {
         nativeMain.dependencies {
             implementation("io.github.trueangle:lambda-runtime:0.0.1") 
             implementation("io.github.trueangle:lambda-events:0.0.1")
         }
     }
+    //..
+}
 ```
 3. Specify application entry point reference and supported targets
 ```
@@ -61,10 +64,11 @@ kotlin {
     //..
 }
 ```
-4. Choose lambda function type
+4. Choose lambda function type.
+
 There are two types of lambda functions:
 
-### Buffered
+** Buffered ** 
 Buffered functions process incoming events by first collecting them
 into a buffer before execution. This is a default behavior.
 
@@ -82,7 +86,7 @@ class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGa
 }
 ```
 
-### Streaming
+** Streaming ** 
 Streaming functions, on the other hand, process events in real-time as they arrive, without any
 intermediate buffering. This method is well-suited for use cases requiring immediate data
 processing, such as real-time analytics or event-driven architectures where low-latency responses
@@ -94,6 +98,11 @@ class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> 
         ByteReadChannel(SystemFileSystem.source(Path("hello.json")).buffered()).copyTo(output)
     }
 }
+```
+
+5. Specify application entry point using standard `main` and `LambdaRuntime.run` functions
+```
+fun main() = LambdaRuntime.run { HelloWorldLambdaHandler() } // or SampleStreamingHandler for streaming lambda
 ```
 
 ## Testing Runtime locally
