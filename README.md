@@ -33,7 +33,8 @@ If you have never used AWS Lambda before, check out this getting started guide.
 To create a simple lambda function, follow the following steps:
 1. Create Kotlin multiplatform project
 2. Include library dependency into your module-level build.gradle file
-```
+```kotlin
+//..
 kotlin {
     //..
     sourceSets {
@@ -44,9 +45,11 @@ kotlin {
     }
     //..
 }
+//..
 ```
 3. Specify application entry point reference and supported targets
-```
+```kotlin
+//..
 kotlin {
     //..
     listOf(
@@ -63,16 +66,16 @@ kotlin {
     }
     //..
 }
+//..
 ```
 4. Choose lambda function type.
 
 There are two types of lambda functions:
 
-** Buffered ** 
-Buffered functions process incoming events by first collecting them
+**Buffered** functions process incoming events by first collecting them
 into a buffer before execution. This is a default behavior.
 
-```
+```kotlin
 class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGatewayV2Response> {
     override suspend fun handleRequest(input: APIGatewayV2Request, context: Context): APIGatewayV2Response {
         return APIGatewayV2Response(
@@ -86,13 +89,12 @@ class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGa
 }
 ```
 
-** Streaming ** 
-Streaming functions, on the other hand, process events in real-time as they arrive, without any
+**Streaming** functions, on the other hand, process events in real-time as they arrive, without any
 intermediate buffering. This method is well-suited for use cases requiring immediate data
 processing, such as real-time analytics or event-driven architectures where low-latency responses
 are crucial.
 
-```
+```kotlin
 class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> {
     override suspend fun handleRequest(input: ByteArray, output: ByteWriteChannel, context: Context) {
         ByteReadChannel(SystemFileSystem.source(Path("hello.json")).buffered()).copyTo(output)
@@ -101,7 +103,7 @@ class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> 
 ```
 
 5. Specify application entry point using standard `main` and `LambdaRuntime.run` functions
-```
+```kotlin
 fun main() = LambdaRuntime.run { HelloWorldLambdaHandler() } // or SampleStreamingHandler for streaming lambda
 ```
 
