@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
 @Serializable
-data class APIGatewayProxy<T>(
+data class APIGatewayProxy(
     @SerialName("version") val version: String,
     @SerialName("resource") val resource: String?,
     @SerialName("path") val path: String?,
@@ -16,7 +16,7 @@ data class APIGatewayProxy<T>(
     @SerialName("pathParameters") val pathParameters: Map<String, String>?,
     @SerialName("stageVariables") val stageVariables: Map<String, String>?,
     @SerialName("requestContext") val requestContext: ProxyRequestContext,
-    @SerialName("body") val body: T?,
+    @SerialName("body") val body: String?,
     @SerialName("isBase64Encoded") val isBase64Encoded: Boolean
 ) {
     @Serializable

@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ALBTargetGroupRequest<T>(
+data class ALBTargetGroupRequest(
     @SerialName("httpMethod") val httpMethod: String,
     @SerialName("path") val path: String,
     @SerialName("queryStringParameters") val queryStringParameters: Map<String, String>,
@@ -12,7 +12,7 @@ data class ALBTargetGroupRequest<T>(
     @SerialName("multiValueHeaders") val multiValueHeaders: Map<String, String>?,
     @SerialName("requestContext") val requestContext: Context,
     @SerialName("isBase64Encoded") val isBase64Encoded: Boolean,
-    @SerialName("body") val body: T?
+    @SerialName("body") val body: String?
 ) {
     @Serializable
     data class Context(

@@ -27,7 +27,7 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-
+includeBuild("convention-plugins")
 include(":lambda-runtime")
 include(":sample")
 include(":lambda-events")
