@@ -28,6 +28,7 @@ dependencyResolutionManagement {
     }
 }
 includeBuild("convention-plugins")
+includeBuild("gradle-plugin")
 include(":lambda-runtime")
 include(":sample")
 include(":lambda-events")

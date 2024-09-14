@@ -11,6 +11,7 @@ ksp = "2.0.10-1.0.24"
 allopen = "2.0.20"
 mokkery = "2.3.0"
 kotlinx-resources = "0.9.0"
+gradle-publish = "1.2.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -38,3 +39,4 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 allopen = { id = "org.jetbrains.kotlin.plugin.allopen", version.ref = "allopen" }
 mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 kotlinx-resources = { id = "com.goncalossilva.resources", version.ref = "kotlinx-resources" }
+gradle-publish = { id = "com.gradle.plugin-publish", version.ref = "gradle-publish" }

@@ -14,7 +14,6 @@ import io.github.trueangle.knative.lambda.runtime.log.debug
 import io.github.trueangle.knative.lambda.runtime.log.error
 import io.github.trueangle.knative.lambda.runtime.log.fatal
 import io.github.trueangle.knative.lambda.runtime.log.info
-import io.github.trueangle.knative.lambda.runtime.log.trace
 import io.github.trueangle.knative.lambda.runtime.log.warn
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
@@ -35,9 +34,10 @@ import kotlinx.serialization.json.Json
 object LambdaRuntime {
     @OptIn(ExperimentalSerializationApi::class)
     internal val json = Json { explicitNulls = false }
+    @PublishedApi
+    internal val curlHttpClient = createHttpClient(Curl.create())
 
     inline fun <reified I, reified O> run(crossinline initHandler: () -> LambdaHandler<I, O>) = runBlocking {
-        val curlHttpClient = createHttpClient(Curl.create())
         val lambdaClient = LambdaClientImpl(curlHttpClient)
 
         Runner(client = lambdaClient, log = Log).run(false, initHandler)

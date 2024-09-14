@@ -34,26 +34,19 @@ To create a simple lambda function, follow the following steps:
 2. Include library dependency into your module-level build.gradle file
 
 ```kotlin
-//..
 kotlin {
-    //..
     sourceSets {
         nativeMain.dependencies {
             implementation("io.github.trueangle:lambda-runtime:0.0.2")
             implementation("io.github.trueangle:lambda-events:0.0.2")
         }
     }
-    //..
 }
-//..
 ```
 
 3. Specify application entry point reference and supported targets
-
 ```kotlin
-//..
 kotlin {
-    //..
     listOf(
         macosArm64(),
         macosX64(),
@@ -66,14 +59,10 @@ kotlin {
             }
         }
     }
-    //..
 }
-//..
 ```
 
-4. Choose lambda function type.
-
-There are two types of lambda functions:
+4. Choose lambda function type. There are two types of lambda functions:
 
 ### Buffered 
 Buffered Lambda function collects all the data it needs to return as a response before sending
@@ -149,23 +138,19 @@ used. Here's how to run project's sample:
 
 ## Build and deploy to AWS
 
-1. Execute `./gradlew build`
-2. After successful build execute `cd YOUR_MODULE/build/bin/linuxX64/releaseExecutable/` this will
-   locate Lambda handler's executable file, e.g. `YOUR_MODULE.kexe`. The name of the file (including
-   the extension) will be used as `handler` name. Don't forget to specify it upon
-   lambda-function creation.
-3. Execute `(echo '#!/bin/sh' > bootstrap && echo './"$_HANDLER"' >> bootstrap && chmod +x bootstrap && zip -r bootstrap.zip ./*)`
-4. Deploy bootstrap.zip archive to AWS. If you have never used AWS Lambda
+1. Apply plugin `id("io.github.trueangle.plugin.lambda") version "0.0.1"`
+2. Execute `./gradlew buildLambdaRelease`. The command will output the path to the archive containing lambda executable (YOUR_MODULE_NAME.kexe) located in (YOUR_MODULE_NAME/build/bin/lambda/release/YOUR_MODULE_NAME.zip)
+3. Deploy .zip archive to AWS. If you have never used AWS Lambda
    before, [learn how to deploy Lambda function as zip archive manually](https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-zip.html)
    or
    using [AWS CLI](https://docs.aws.amazon.com/codedeploy/latest/userguide/getting-started-codedeploy.html):
 
 ```bash
-$ aws lambda create-function --function-name sample \
-  --handler sample.kexe \ # Important to specify the name of the Lambda executable
-  --zip-file bootstrap.zip \
+$ aws lambda create-function --function-name LAMBDA_FUNCTION_NAME \
+  --handler YOUR_MODULE_NAME.kexe \ # Important to specify the name of the Lambda executable. 
+  --zip-file YOUR_MODULE_NAME.zip \
   --runtime provided.al2023 \ # Change this to provided.al2 if you would like to use Amazon Linux 2
-  --role arn:aws:iam::XXXXXXXXXXXXX:role/your_lambda_execution_role \
+  --role arn:aws:iam::XXXXXXXXXXXXX:role/YOUR_LAMBDA_EXECUTION_ROLE \
   --environment Variables={RUST_BACKTRACE=1} \
   --tracing-config Mode=Active
 ```
@@ -233,7 +218,6 @@ Log.fatal(message: T?) // Messages about serious errors that cause the applicati
   build command:
 
 ```bash
-
 docker build -t sample .
 docker run --rm -v $(pwd):/sample -w /sample sample ./gradlew build
 ```
