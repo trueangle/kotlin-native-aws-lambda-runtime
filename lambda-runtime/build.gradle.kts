@@ -11,7 +11,7 @@ plugins {
 kotlin {
     macosArm64()
     macosX64()
-    linuxArm64()
+    //linuxArm64() // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
     linuxX64()
 
     sourceSets {
