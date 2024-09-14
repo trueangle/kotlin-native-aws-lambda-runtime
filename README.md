@@ -1,5 +1,4 @@
 # Kotlin Native Runtime for AWS Lambda
-
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.trueangle/lambda-runtime/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.trueangle/lambda-runtime/badge.svg)
 
 A runtime for executing AWS Lambda Functions powered by Kotlin Native, designed to mitigate known
@@ -21,8 +20,7 @@ following [OS-only runtime machines](https://docs.aws.amazon.com/lambda/latest/d
 
 Performance benchmarks reveal that Kotlin Native's "Hello World" Lambda function, executed on Amazon
 Linux 2023 (x86_64) with 1024MB of memory, ranks among the top 5 fastest cold starts. Its
-performance is on par with Python and .NET implementations. For a comparison with other languages (
-including Java), visit https://maxday.github.io/lambda-perf/.
+performance is on par with Python and .NET implementations. For a comparison with other languages (including Java), visit https://maxday.github.io/lambda-perf/.
 
 ![Kotlin Native AWS Lambda Runtime benchmarks](docs/performance_hello_world.png)
 
@@ -134,7 +132,7 @@ used. Here's how to run project's sample:
 3. Run `docker build -t sample:latest .`
 4. Start server `docker run -p 9000:8080 sample:latest`
 5. Execute function
-   via `curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'`
+   using `curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'`
 
 ## Build and deploy to AWS
 
