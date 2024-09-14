@@ -158,7 +158,7 @@ You can now test the function using the AWS CLI or the AWS Lambda console
 ```bash
 $ aws lambda invoke
 --cli-binary-format raw-in-base64-out \
---function-name sample \
+--function-name LAMBDA_FUNCTION_NAME \
 --payload '{"command": "Say Hi!"}' \
 output.json
 $ cat output.json 
