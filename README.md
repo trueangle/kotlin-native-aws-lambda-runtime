@@ -53,7 +53,7 @@ kotlin {
     ).forEach {
         it.binaries {
             executable {
-                entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main" // Change this to your entry point
+                entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main" // Link this to your main function entry point
             }
         }
     }
@@ -96,8 +96,8 @@ class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> 
     }
 }
 ```
-### 5. Specify Application entry point
-Using standard `main` function. Call `LambdaRuntime.run` to execute Lambda by passing handler to it.
+### 5. Specify Main Function
+Create application entry point using standard `main` function. Call `LambdaRuntime.run` to execute Lambda by passing handler to it.
 
 ```kotlin
 fun main() = LambdaRuntime.run { HelloWorldLambdaHandler() }
@@ -125,7 +125,7 @@ Use the [AWS runtime emulator](https://github.com/aws/aws-lambda-runtime-interfa
 
 ## Build and deploy to AWS
 
-1. Apply the plugin `id("io.github.trueangle.plugin.lambda") version "0.0.1"`
+1. Make sure you have applied the plugin `id("io.github.trueangle.plugin.lambda") version "0.0.1"`
 2. Execute `./gradlew buildLambdaRelease`. The command will output the path to the archive containing lambda executable (YOUR_MODULE_NAME.kexe) located in (YOUR_MODULE_NAME/build/bin/lambda/release/YOUR_MODULE_NAME.zip)
 3. Deploy .zip archive to AWS. If you have never used AWS Lambda
    before, [learn how to deploy Lambda function as zip archive manually](https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-zip.html)
