@@ -1,7 +1,7 @@
 # Kotlin Native Runtime for AWS Lambda
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.trueangle/lambda-runtime/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.trueangle/lambda-runtime/badge.svg)
 
-A runtime for executing AWS Lambda Functions using Kotlin Native, designed to reduce cold start issues common with the JVM platform.
+A runtime for executing AWS Lambda Functions written in Kotlin/Native, designed to reduce cold start issues common with the JVM platform.
 
 ## Project Structure
 
