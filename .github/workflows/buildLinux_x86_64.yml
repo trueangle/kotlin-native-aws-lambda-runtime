@@ -25,5 +25,4 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: kotlin-native-build
-          path: sample/build/bin/lambda/release
+          path: sample/build/lambda/release/sample.zip
