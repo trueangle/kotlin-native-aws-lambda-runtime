@@ -101,7 +101,7 @@ class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> 
 
 Both `LambdaBufferedHandler` and `LambdaStreamHandler` are suspend functions, so you can use Kotlin coroutines to handle the request in non-blocking way.
 
-Each handler accepts `Context` object which can be used to get information about the function execution environment, such as the request ID, resource limits, and other details. For more details about the context object, see the [AWS Lambda documentation](https://docs.aws.amazon.com/lambda/latest/dg/c-runtime-context.html).
+Each handler accepts [`Context`](https://github.com/trueangle/kotlin-native-aws-lambda-runtime/blob/68025bacc26ca075d8d0e9419c45b855a8b4003b/lambda-runtime/src/commonMain/kotlin/io/github/trueangle/knative/lambda/runtime/api/Context.kt#L1) object which can be used to get information about the function execution environment, such as the request ID, resource limits, and other details. For more details about the context object, see the [AWS Lambda documentation](https://docs.aws.amazon.com/lambda/latest/dg/c-runtime-context.html).
 
 ### 5. Specify Main Function
 Create application entry point using standard `main` function. Call `LambdaRuntime.run` to execute Lambda by passing handler to it.
