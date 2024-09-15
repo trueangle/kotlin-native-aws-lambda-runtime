@@ -23,7 +23,7 @@ Benchmarks show that Kotlin Native's "Hello World" Lambda function on Amazon Lin
 ## Getting started
 
 ### 1. Create a Kotlin Multiplatform Project
-See [Kotlin Native](https://kotlinlang.org/docs/native-overview.html) for more details.
+See [Get started with Kotlin/Native](https://kotlinlang.org/docs/native-get-started.html) for more details.
 
 ### 2. Add Dependencies
 
@@ -81,6 +81,7 @@ class HelloWorldLambdaHandler : LambdaBufferedHandler<APIGatewayV2Request, APIGa
     }
 }
 ```
+`LambdaBufferedHandler<I, O>` is designed to work with any Kotlin class that is supported by the Kotlin serialization library as both the input and output types. This allows you to define your own custom request and response models annotated with `@Serializable` or utilize existing ones provided by the `lambda-events` module.
 
 #### Streaming
 A streaming function sends data as soon as it's available, instead of waiting for all the data. It processes and returns the response in chunks, which is useful for large or ongoing tasks. This allows for faster responses and can handle data as it comes in. [More details here](https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html). For example, `SampleStreamingHandler` reads a large json file and streams it in chunks.
@@ -96,6 +97,12 @@ class SampleStreamingHandler : LambdaStreamHandler<ByteArray, ByteWriteChannel> 
     }
 }
 ```
+`LambdaStreamHandler<I, ByteWriteChannel>` accepts any serializable input and outputs to `ByteWriteChannel` which is then streamed to the client.
+
+Both `LambdaBufferedHandler` and `LambdaStreamHandler` are suspend functions, so you can use Kotlin coroutines to handle the request in non-blocking way.
+
+Each handler accepts `Context` object which can be used to get information about the function execution environment, such as the request ID, resource limits, and other details. For more details about the context object, see the [AWS Lambda documentation](https://docs.aws.amazon.com/lambda/latest/dg/c-runtime-context.html).
+
 ### 5. Specify Main Function
 Create application entry point using standard `main` function. Call `LambdaRuntime.run` to execute Lambda by passing handler to it.
 
