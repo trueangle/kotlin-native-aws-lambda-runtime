@@ -145,7 +145,6 @@ $ aws lambda create-function --function-name LAMBDA_FUNCTION_NAME \
   --zip-file YOUR_MODULE_NAME.zip \
   --runtime provided.al2023 \ # Change this to provided.al2 if you would like to use Amazon Linux 2
   --role arn:aws:iam::XXXXXXXXXXXXX:role/YOUR_LAMBDA_EXECUTION_ROLE \
-  --environment Variables={RUST_BACKTRACE=1} \
   --tracing-config Mode=Active
 ```
 
