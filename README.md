@@ -1,7 +1,7 @@
 # Kotlin Native Runtime for AWS Lambda
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.trueangle/lambda-runtime/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.trueangle/lambda-runtime/badge.svg)
 
-A runtime for executing AWS Lambda Functions using Kotlin Native, designed to reduce cold start issues common with the JVM platform.
+A runtime for executing AWS Lambda Functions written in Kotlin/Native, designed to reduce cold start issues common with the JVM platform.
 
 ## Project Structure
 
@@ -145,7 +145,6 @@ $ aws lambda create-function --function-name LAMBDA_FUNCTION_NAME \
   --zip-file YOUR_MODULE_NAME.zip \
   --runtime provided.al2023 \ # Change this to provided.al2 if you would like to use Amazon Linux 2
   --role arn:aws:iam::XXXXXXXXXXXXX:role/YOUR_LAMBDA_EXECUTION_ROLE \
-  --environment Variables={RUST_BACKTRACE=1} \
   --tracing-config Mode=Active
 ```
 
