@@ -12,7 +12,7 @@ kotlin {
     jvmToolchain(17)
 }
 
-group = "io.github.trueangle.plugin.lambda" 
+group = "io.github.trueangle"
 version = "0.0.1" 
 
 gradlePlugin {
