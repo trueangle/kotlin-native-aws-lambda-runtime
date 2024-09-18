@@ -64,10 +64,10 @@ data class APIGatewayRequest(
 }
 
 @Serializable
-data class APIGatewayResponse<T>(
+data class APIGatewayResponse(
     @SerialName("statusCode") val statusCode: Int,
     @SerialName("headers") val headers: Map<String, String>? = null,
     @SerialName("multiValueHeaders") val multiValueHeaders: Map<String, String>? = null,
-    @SerialName("body") val body: T? = null,
+    @SerialName("body") val body: String? = null,
     @SerialName("isBase64Encoded") val isBase64Encoded: Boolean? = null
 )
