@@ -34,6 +34,7 @@ import kotlinx.serialization.json.Json
 object LambdaRuntime {
     @OptIn(ExperimentalSerializationApi::class)
     internal val json = Json { explicitNulls = false }
+
     @PublishedApi
     internal val curlHttpClient = createHttpClient(Curl.create())
 
@@ -85,35 +86,37 @@ internal class Runner(
             try {
                 log.info("Runtime is ready for a new event")
 
-                val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
+                try {
+                    val (event, context) = client.retrieveNextEvent<I>(inputTypeInfo)
 
-                with(log) {
-                    setContext(context)
+                    with(log) {
+                        setContext(context)
 
-                    debug(event)
-                    debug(context)
-                    info("$handlerName invocation started")
+                        debug(event)
+                        debug(context)
+                        info("$handlerName invocation started")
+                    }
+
+                    if (handler is LambdaStreamHandler<I, *>) {
+                        val response = streamingResponse { handler.handleRequest(event, it, context) }
+
+                        log.info("$handlerName started response streaming")
+
+                        client.streamResponse(context, response)
+                    } else {
+                        handler as LambdaBufferedHandler<I, O>
+                        val response = bufferedResponse(context) { handler.handleRequest(event, context) }
+
+                        log.info("$handlerName invocation completed")
+                        log.debug(response)
+
+                        client.sendResponse(context, response, outputTypeInfo)
+                    }
+                } catch (e: LambdaRuntimeException) {
+                    log.error(e)
+
+                    client.reportError(e)
                 }
-
-                if (handler is LambdaStreamHandler<I, *>) {
-                    val response = streamingResponse { handler.handleRequest(event, it, context) }
-
-                    log.info("$handlerName started response streaming")
-
-                    client.streamResponse(context, response)
-                } else {
-                    handler as LambdaBufferedHandler<I, O>
-                    val response = bufferedResponse(context) { handler.handleRequest(event, context) }
-
-                    log.info("$handlerName invocation completed")
-                    log.debug(response)
-
-                    client.sendResponse(context, response, outputTypeInfo)
-                }
-            } catch (e: LambdaRuntimeException) {
-                log.error(e)
-
-                client.reportError(e)
             } catch (e: LambdaEnvironmentException) {
                 when (e) {
                     is NonRecoverableStateException -> {

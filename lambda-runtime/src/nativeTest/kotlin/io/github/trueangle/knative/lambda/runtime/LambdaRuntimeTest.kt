@@ -9,7 +9,9 @@ import dev.mokkery.spy
 import dev.mokkery.verify
 import dev.mokkery.verify.VerifyMode.Companion.exactly
 import dev.mokkery.verify.VerifyMode.Companion.not
+import dev.mokkery.verify.VerifyMode.Companion.order
 import dev.mokkery.verifySuspend
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.*
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.EventBodyParseException
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.HandlerException
 import io.github.trueangle.knative.lambda.runtime.ReservedRuntimeEnvironmentVariables.AWS_LAMBDA_FUNCTION_NAME
@@ -191,7 +193,7 @@ class LambdaRuntimeTest {
     }
 
     @Test
-    fun `GIVEN api error WHEN retrieveNextEvent THEN terminate`() = runTest {
+    fun `GIVEN env api error WHEN retrieveNextEvent THEN terminate`() = runTest {
         val lambdaRunner = createRunner(MockEngine { request ->
             val path = request.url.encodedPath
             when {
@@ -211,6 +213,75 @@ class LambdaRuntimeTest {
         }
         verify(not) { log.log(ERROR, any<Any>(), any()) }
         verify { log.log(FATAL, any<Any>(), any()) }
+    }
+
+    @Test
+    fun `GIVEN bad request from env api WHEN sendResponse THEN skip event`() = runTest {
+        val lambdaRunner = createRunner(MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path.contains("invocation/next") -> respondNextEventSuccess("")
+                path.contains("${context.awsRequestId}/response") -> respondError(HttpStatusCode.BadGateway)
+                else -> respondBadRequest()
+            }
+        })
+        val client = lambdaRunner.client
+        val handler = object : LambdaBufferedHandler<String, String> {
+            override suspend fun handleRequest(input: String, context: Context) = throw RuntimeException()
+        }
+
+        lambdaRunner.run(singleEventMode = true) { handler }
+
+        verifySuspend { client.reportError(any<HandlerException>()) }
+        verify(order) { log.log(ERROR, any<HandlerException>(), any()) }
+        verify(order) { log.log(ERROR, any<BadRequestException>(), any()) }
+        verify(not) { log.log(FATAL, any<Any>(), any()) }
+        verify(not) { lambdaRunner.env.terminate() }
+    }
+
+    @Test
+    fun `GIVEN unknown http error from env api WHEN reportError THEN skip event`() = runTest {
+        val lambdaRunner = createRunner(MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path.contains("invocation/next") -> respondNextEventSuccess("")
+                else -> respondBadRequest()
+            }
+        })
+        val client = lambdaRunner.client
+        val handler = object : LambdaBufferedHandler<String, String> {
+            override suspend fun handleRequest(input: String, context: Context) = throw RuntimeException()
+        }
+
+        lambdaRunner.run(singleEventMode = true) { handler }
+
+        verifySuspend { client.reportError(any<HandlerException>()) }
+        verify(order) { log.log(ERROR, any<HandlerException>(), any()) }
+        verify(order) { log.log(ERROR, any<BadRequestException>(), any()) }
+        verify(not) { log.log(FATAL, any<Any>(), any()) }
+        verify(not) { lambdaRunner.env.terminate() }
+    }
+
+    @Test
+    fun `GIVEN internal server error from env api WHEN reportError THEN terminate`() = runTest {
+        val lambdaRunner = createRunner(MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path.contains("invocation/next") -> respondNextEventSuccess("")
+                path.contains("${context.awsRequestId}/error") -> respondError(HttpStatusCode.InternalServerError)
+                else -> respondBadRequest()
+            }
+        })
+        val client = lambdaRunner.client
+        val handler = object : LambdaBufferedHandler<String, String> {
+            override suspend fun handleRequest(input: String, context: Context) = throw RuntimeException()
+        }
+
+        assertFailsWith<TerminateException> { lambdaRunner.run(singleEventMode = true) { handler } }
+        verifySuspend { client.reportError(any<HandlerException>()) }
+        verify { log.log(ERROR, any<HandlerException>(), any()) }
+        verify { log.log(FATAL, any<NonRecoverableStateException>(), any()) }
+        verify { lambdaRunner.env.terminate() }
     }
 
     @Test
@@ -238,7 +309,7 @@ class LambdaRuntimeTest {
     }
 
     @Test
-    fun `GIVEN Handler exception WHEN handleRequest THEN report error AND skip event`() = runTest {
+    fun `GIVEN Handler exception WHEN invoke handler THEN report error AND skip event`() = runTest {
         val lambdaRunner = createRunner(MockEngine { request ->
             val path = request.url.encodedPath
             when {
@@ -261,7 +332,7 @@ class LambdaRuntimeTest {
     }
 
     @Test
-    fun `GIVEN Handler exception WHEN streamingResponse THEN consume error`() = runTest {
+    fun `GIVEN Handler exception WHEN invoke streaming handler THEN consume error`() = runTest {
         val lambdaRunner = createRunner(MockEngine { request ->
             val path = request.url.encodedPath
             when {
