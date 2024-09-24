@@ -21,6 +21,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import io.ktor.util.reflect.TypeInfo
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.minutes
@@ -53,6 +54,11 @@ internal class LambdaClientImpl(private val httpClient: HttpClient): LambdaClien
                 exponentialDelay()
             }
         }
+
+        if(!response.status.isSuccess()) {
+            throw NonRecoverableStateException(message = "Lambda environment is unavailable. Can't retrieve an event. Terminating")
+        }
+
         val context = contextFromResponseHeaders(response)
         val body = try {
             response.body(bodyType) as T

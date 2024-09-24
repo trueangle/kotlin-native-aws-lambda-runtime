@@ -1,4 +1,5 @@
 import dev.mokkery.MockMode
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -9,10 +10,23 @@ plugins {
 }
 
 kotlin {
-    macosArm64()
+    macosArm64 {
+        binaries {
+            getTest(NativeBuildType.DEBUG).freeCompilerArgs += listOf("-Xruntime-logs=gc=info", "-Xallocator=std")
+            executable {
+                freeCompilerArgs += listOf("-Xallocator=std")
+            }
+        }
+    }
     macosX64()
     //linuxArm64() // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
-    linuxX64()
+    linuxX64 {
+        binaries {
+            executable {
+                freeCompilerArgs += listOf("-Xruntime-logs=gc=info", "-Xallocator=std")
+            }
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {

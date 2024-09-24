@@ -11,7 +11,8 @@ import dev.mokkery.verify.VerifyMode.Companion.exactly
 import dev.mokkery.verify.VerifyMode.Companion.not
 import dev.mokkery.verify.VerifyMode.Companion.order
 import dev.mokkery.verifySuspend
-import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.*
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.BadRequestException
+import io.github.trueangle.knative.lambda.runtime.LambdaEnvironmentException.NonRecoverableStateException
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.EventBodyParseException
 import io.github.trueangle.knative.lambda.runtime.LambdaRuntimeException.Invocation.HandlerException
 import io.github.trueangle.knative.lambda.runtime.ReservedRuntimeEnvironmentVariables.AWS_LAMBDA_FUNCTION_NAME
@@ -33,12 +34,8 @@ import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondBadRequest
 import io.ktor.client.engine.mock.respondError
-import io.ktor.client.engine.mock.respondOk
-import io.ktor.client.request.HttpRequestData
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.ChannelWriterContent
-import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headers
 import io.ktor.http.headersOf
 import io.ktor.util.reflect.typeInfo
@@ -48,16 +45,15 @@ import io.ktor.utils.io.copyTo
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import kotlinx.coroutines.test.runTest
-import kotlinx.io.Buffer
-import kotlinx.io.RawSource
-import kotlinx.io.Source
 import kotlinx.serialization.json.Json
 import platform.posix.getenv
 import platform.posix.setenv
+import kotlin.experimental.ExperimentalNativeApi
+import kotlin.native.runtime.GC
+import kotlin.native.runtime.NativeRuntimeApi
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
 
 internal const val RESOURCES_PATH = "src/nativeTest/resources"
 
@@ -197,10 +193,7 @@ class LambdaRuntimeTest {
         val lambdaRunner = createRunner(MockEngine { request ->
             val path = request.url.encodedPath
             when {
-                path.contains("/invocation/next") -> {
-                    respondError(HttpStatusCode.InternalServerError)
-                }
-
+                path.contains("/invocation/next") -> respondError(HttpStatusCode.InternalServerError)
                 else -> respondError(HttpStatusCode.Forbidden)
             }
         })
@@ -366,6 +359,68 @@ class LambdaRuntimeTest {
         verifySuspend { client.streamResponse(any(), any()) }
         verify(not) { log.log(FATAL, any<Any>(), any()) }
         verify(not) { lambdaRunner.env.terminate() }
+    }
+
+    @OptIn(NativeRuntimeApi::class, ExperimentalStdlibApi::class, ExperimentalNativeApi::class)
+    @Test
+    fun `Validate leaks`() = runTest {
+        val invocationCount = 3
+        var invocationIndex = 0
+        val events = buildList(invocationCount) {
+            repeat(invocationCount) { add("Hello world") }
+        }
+
+        val lambdaRunner = createRunner(MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path.contains("invocation/next") -> {
+                    if (invocationIndex >= invocationCount) {
+                        respondError(HttpStatusCode.InternalServerError, headers = headers {
+                            append(HttpHeaders.ContentType, "application/json")
+                            append("Lambda-Runtime-Aws-Request-Id", context.awsRequestId)
+                            append("Lambda-Runtime-Deadline-Ms", context.deadlineTimeInMs.toString())
+                            append("Lambda-Runtime-Invoked-Function-Arn", context.invokedFunctionArn)
+                        })
+                    } else {
+                        respondNextEventSuccess(events[invocationIndex++])
+                    }
+                }
+
+                path.contains("/invocation/${context.awsRequestId}/response") -> respond(
+                    content = ByteReadChannel("Ok"),
+                    status = HttpStatusCode.Accepted,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+
+                else -> respondBadRequest()
+            }
+        })
+
+        val handler = object : LambdaBufferedHandler<String, String> {
+            override suspend fun handleRequest(input: String, context: Context): String = "Hello"
+        }
+
+        assertFailsWith<TerminateException> {
+            lambdaRunner.run { handler }
+        }
+
+        GC.collect()
+        GC.lastGCInfo?.let {gcInfo->
+            println(
+                "Heap Size Before: ${
+                    gcInfo.memoryUsageBefore.map {
+                        it.key + " - " + it.value.totalObjectsSizeBytes / 1024 / 1024
+                    }
+                }"
+            )
+            println(
+                "Heap Size After: ${
+                    gcInfo.memoryUsageAfter.map {
+                        it.key + " - " + it.value.totalObjectsSizeBytes / 1024 / 1024
+                    }
+                }"
+            )
+        }
     }
 
     @OptIn(ExperimentalForeignApi::class)
