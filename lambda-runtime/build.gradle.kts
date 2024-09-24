@@ -20,13 +20,7 @@ kotlin {
     }
     macosX64()
     //linuxArm64() // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
-    linuxX64 {
-        binaries {
-            executable {
-                freeCompilerArgs += listOf("-Xruntime-logs=gc=info", "-Xallocator=std")
-            }
-        }
-    }
+    linuxX64()
 
     sourceSets {
         commonMain.dependencies {
