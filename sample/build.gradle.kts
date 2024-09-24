@@ -14,8 +14,7 @@ kotlin {
         it.binaries {
             executable {
                 entryPoint = "com.github.trueangle.knative.lambda.runtime.sample.main"
-                //freeCompilerArgs += listOf("-Xallocator=std")
-                freeCompilerArgs += listOf("-Xallocator=mimalloc")
+                freeCompilerArgs += listOf("-Xallocator=std")
             }
         }
     }
