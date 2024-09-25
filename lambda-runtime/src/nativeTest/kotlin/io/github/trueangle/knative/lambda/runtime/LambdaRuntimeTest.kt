@@ -48,9 +48,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import platform.posix.getenv
 import platform.posix.setenv
-import kotlin.experimental.ExperimentalNativeApi
-import kotlin.native.runtime.GC
-import kotlin.native.runtime.NativeRuntimeApi
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -359,68 +356,6 @@ class LambdaRuntimeTest {
         verifySuspend { client.streamResponse(any(), any()) }
         verify(not) { log.log(FATAL, any<Any>(), any()) }
         verify(not) { lambdaRunner.env.terminate() }
-    }
-
-    @OptIn(NativeRuntimeApi::class, ExperimentalStdlibApi::class, ExperimentalNativeApi::class)
-    @Test
-    fun `Validate leaks`() = runTest {
-        val invocationCount = 3
-        var invocationIndex = 0
-        val events = buildList(invocationCount) {
-            repeat(invocationCount) { add("Hello world") }
-        }
-
-        val lambdaRunner = createRunner(MockEngine { request ->
-            val path = request.url.encodedPath
-            when {
-                path.contains("invocation/next") -> {
-                    if (invocationIndex >= invocationCount) {
-                        respondError(HttpStatusCode.InternalServerError, headers = headers {
-                            append(HttpHeaders.ContentType, "application/json")
-                            append("Lambda-Runtime-Aws-Request-Id", context.awsRequestId)
-                            append("Lambda-Runtime-Deadline-Ms", context.deadlineTimeInMs.toString())
-                            append("Lambda-Runtime-Invoked-Function-Arn", context.invokedFunctionArn)
-                        })
-                    } else {
-                        respondNextEventSuccess(events[invocationIndex++])
-                    }
-                }
-
-                path.contains("/invocation/${context.awsRequestId}/response") -> respond(
-                    content = ByteReadChannel("Ok"),
-                    status = HttpStatusCode.Accepted,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json")
-                )
-
-                else -> respondBadRequest()
-            }
-        })
-
-        val handler = object : LambdaBufferedHandler<String, String> {
-            override suspend fun handleRequest(input: String, context: Context): String = "Hello"
-        }
-
-        assertFailsWith<TerminateException> {
-            lambdaRunner.run { handler }
-        }
-
-        GC.collect()
-        GC.lastGCInfo?.let {gcInfo->
-            println(
-                "Heap Size Before: ${
-                    gcInfo.memoryUsageBefore.map {
-                        it.key + " - " + it.value.totalObjectsSizeBytes / 1024 / 1024
-                    }
-                }"
-            )
-            println(
-                "Heap Size After: ${
-                    gcInfo.memoryUsageAfter.map {
-                        it.key + " - " + it.value.totalObjectsSizeBytes / 1024 / 1024
-                    }
-                }"
-            )
-        }
     }
 
     @OptIn(ExperimentalForeignApi::class)

@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+
 plugins {
     // this is necessary to avoid the plugins to be loaded multiple times
     // in each subproject's classloader
@@ -10,11 +12,10 @@ allprojects {
     group = "io.github.trueangle"
     version = "0.0.2"
 }
-/*
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     compilerOptions {
         freeCompilerArgs.add("-Xallocator=std")
         freeCompilerArgs.add("-Xruntime-logs=gc=info")
     }
-}*/
+}
