@@ -1,4 +1,5 @@
 import dev.mokkery.MockMode
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -14,10 +15,10 @@ kotlin {
     //linuxArm64() // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
     linuxX64()
 
-   /* @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
         freeCompilerArgs.add("-Xallocator=std")
-    }*/
+    }
 
     sourceSets {
         commonMain.dependencies {
