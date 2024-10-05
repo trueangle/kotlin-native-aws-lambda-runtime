@@ -8,7 +8,6 @@ import io.github.trueangle.knative.lambda.runtime.log.JsonLogFormatter
 import io.github.trueangle.knative.lambda.runtime.log.LogLevel
 import io.ktor.util.reflect.typeInfo
 import kotlinx.datetime.Clock
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -19,7 +18,6 @@ class JsonLogFormatterTest {
     private val requestId = "awsRequestId"
     private val timestamp = Clock.System.now()
 
-    @OptIn(ExperimentalSerializationApi::class)
     private val formatter = JsonLogFormatter(clock = clock, json = Json { explicitNulls = true }).apply {
         onContextAvailable(mockContext(requestId))
     }
