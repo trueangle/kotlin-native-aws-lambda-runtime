@@ -19,7 +19,7 @@ kotlin {
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
-        freeCompilerArgs.addAll(listOf("-Xallocator=std", "-Xruntime-logs=gc=info"))
+        freeCompilerArgs.addAll(listOf("-Xallocator=std"))
     }
 
     sourceSets {
