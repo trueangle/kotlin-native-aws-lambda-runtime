@@ -1,5 +1,7 @@
 import dev.mokkery.MockMode
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompileCommon
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -16,8 +18,14 @@ kotlin {
         //linuxArm64() // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
         linuxX64(),
     ).forEach {
-        it.binaries.all {
-            freeCompilerArgs = freeCompilerArgs + listOf("-Xallocator=std", "-Xruntime-logs=gc=info",)
+        it.compilations.configureEach {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    freeCompilerArgs.addAll(listOf("-Xallocator=std", "-Xruntime-logs=gc=info"))
+
+                    //freeCompilerArgs = freeCompilerArgs + listOf("-Xallocator=std", "-Xruntime-logs=gc=info",)
+                }
+            }
         }
     }
 
@@ -46,3 +54,10 @@ kotlin {
 mokkery {
     defaultMockMode.set(MockMode.autoUnit)
 }
+
+/*
+tasks.withType<KotlinCompileCommon>().configureEach {
+    compilerOptions {
+        freeCompilerArgs.addAll(listOf("-Xallocator=std", "-Xruntime-logs=gc=info",))
+    }
+}*/
