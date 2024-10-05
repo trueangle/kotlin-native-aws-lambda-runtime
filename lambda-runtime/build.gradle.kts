@@ -1,4 +1,7 @@
 import dev.mokkery.MockMode
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompileCommon
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -13,6 +16,11 @@ kotlin {
     macosX64()
     //linuxArm64() // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
     linuxX64()
+
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    compilerOptions {
+        freeCompilerArgs.addAll(listOf("-Xallocator=std"))
+    }
 
     sourceSets {
         commonMain.dependencies {
