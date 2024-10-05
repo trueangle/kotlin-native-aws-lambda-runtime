@@ -10,14 +10,15 @@ plugins {
 }
 
 kotlin {
-    macosArm64()
-    macosX64()
-    //linuxArm64() // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
-    linuxX64()
-
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    compilerOptions {
-        freeCompilerArgs.add("-Xallocator=std")
+    listOf(
+        macosArm64(),
+        macosX64(),
+        //linuxArm64() // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
+        linuxX64(),
+    ).forEach {
+        it.binaries.all {
+            freeCompilerArgs = freeCompilerArgs + listOf("-Xallocator=std", "-Xruntime-logs=gc=info",)
+        }
     }
 
     sourceSets {
