@@ -47,10 +47,3 @@ kotlin {
 mokkery {
     defaultMockMode.set(MockMode.autoUnit)
 }
-
-/*
-tasks.withType<KotlinCompileCommon>().configureEach {
-    compilerOptions {
-        freeCompilerArgs.addAll(listOf("-Xallocator=std", "-Xruntime-logs=gc=info",))
-    }
-}*/
