@@ -16,12 +16,12 @@ A runtime for executing AWS Lambda Functions written in Kotlin/Native, designed 
 
 ## Performance
 
-Benchmarks show that Kotlin Native's "Hello World" Lambda function on Amazon Linux 2023 (x86_64) with 1024MB memory is among the top 5 fastest cold starts, comparable to Python and .NET. For more details, visit [lambda-perf](https://maxday.github.io/lambda-perf/).
-- Lambda 128mb provisioned memory
+Benchmarks of Kotlin Native's "Hello World" Lambda function on Amazon Linux 2023 (x86_64) configured with different amounts of provisioned memory. For more detailed comparison, visit [lambda-perf](https://maxday.github.io/lambda-perf/).
+- **Lambda 128mb provisioned memory**. Kotlin/Native outperforms JVM-based runtimes with a cold start nearly matching GraalVM and beating Java 17 and Java 21 SnapStart. It also uses less memory (28.5MB vs. Java 17's 82MB).
 ![Kotlin Native AWS Lambda Runtime 128mb benchmark](docs/performance_hello_world_128mb.png)
-- Lambda 256mb provisioned memory
+- **Lambda 256mb provisioned memory**. Competitive with Python in execution time and memory usage, while surpassing JVM-based runtimes.
 ![Kotlin Native AWS Lambda Runtime 256mb benchmark](docs/performance_hello_world_256mb.png)
-- Lambda 512mb provisioned memory
+- **Lambda 512mb provisioned memory**. Kotlin/Native ranks among the top 7 fastest runtimes, ahead of Python, C#, and JVM, only trailing behind C++, Rust, LLRT, and Go.
 ![Kotlin Native AWS Lambda Runtime 512mb benchmark](docs/performance_hello_world_512mb.png)
 - Lambda 1024mb provisioned memory
 ![Kotlin Native AWS Lambda Runtime 1024mb benchmark](docs/performance_hello_world_1024mb.png)
