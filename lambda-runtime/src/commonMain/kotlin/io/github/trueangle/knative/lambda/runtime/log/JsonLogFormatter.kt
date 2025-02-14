@@ -6,7 +6,6 @@ import io.github.trueangle.knative.lambda.runtime.asSerialObject
 import io.ktor.util.reflect.TypeInfo
 import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
@@ -28,7 +27,9 @@ internal class JsonLogFormatter(
                     )
                 )
             } else {
-                val messageSerializer = serializer(messageType.reifiedType)
+                val messageSerializer = serializer(
+                    messageType.kotlinType ?: throw SerializationException("Missing KType")
+                )
                 val dtoSerializer = LogMessageDto.serializer(messageSerializer)
 
                 json.encodeToString(
