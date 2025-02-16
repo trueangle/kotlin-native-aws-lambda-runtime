@@ -8,5 +8,5 @@ plugins {
 
 allprojects {
     group = "io.github.trueangle"
-    version = "0.0.4"
+    version = "0.0.5"
 }
