@@ -1,11 +1,11 @@
 package io.github.trueangle.knative.lambda.runtime.events.apigateway
 
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 @Serializable
 data class APIGatewayProxy(
-    @SerialName("version") val version: String,
+    @SerialName("version") val version: String?,
     @SerialName("resource") val resource: String?,
     @SerialName("path") val path: String?,
     @SerialName("httpMethod") val httpMethod: String,
@@ -30,6 +30,7 @@ data class APIGatewayProxy(
         @SerialName("resourcePath") val resourcePath: String?,
         @SerialName("httpMethod") val httpMethod: String,
         @SerialName("apiId") val apiId: String?,
+        @SerialName("deploymentId") val deploymentId: String?,
         @SerialName("path") val path: String?,
         @SerialName("authorizer") val authorizer: Map<String, Map<String, String>>?,
         @SerialName("extendedRequestId") val extendedRequestId: String?,
