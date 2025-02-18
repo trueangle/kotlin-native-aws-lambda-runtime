@@ -8,7 +8,7 @@ kotlin {
     listOf(
         macosArm64(),
         macosX64(),
-        //linuxArm64(), // https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
+        linuxArm64(),
         linuxX64(),
     ).forEach {
         it.binaries {
@@ -26,4 +26,8 @@ kotlin {
             implementation(libs.kotlin.serialization.json)
         }
     }
+}
+
+buildLambdaRelease {
+    architecture.set(Architecture.LINUX_X64) // or Architecture.LINUX_ARM64
 }
