@@ -11,8 +11,8 @@ A runtime for executing AWS Lambda Functions written in Kotlin/Native, designed 
 
 ## Supported [OS-only runtime machines](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html)
 
-- Amazon Linux 2023 (provided.al2023) with x86_64 architecture
-- Amazon Linux 2 (provided.al2) with x86_64 architecture
+- Amazon Linux 2023 (provided.al2023) with x86_64 or ARM architecture
+- Amazon Linux 2 (provided.al2) with x86_64 or ARM architecture
 
 ## Performance
 
@@ -151,6 +151,7 @@ $ aws lambda create-function --function-name LAMBDA_FUNCTION_NAME \
   --handler YOUR_MODULE_NAME.kexe \ # Important to specify the name of the Lambda executable. 
   --zip-file YOUR_MODULE_NAME.zip \
   --runtime provided.al2023 \ # Change this to provided.al2 if you would like to use Amazon Linux 2
+  --architecture x86_64 \ # or arm64
   --role arn:aws:iam::XXXXXXXXXXXXX:role/YOUR_LAMBDA_EXECUTION_ROLE \
   --tracing-config Mode=Active
 ```
