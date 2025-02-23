@@ -19,4 +19,11 @@ class APIGatewayTest {
         val jsonString = Resource("$RESOURCES_PATH/example-apigw-v2-custom-authorizer-v1-request.json").readText()
         Json.decodeFromString<APIGatewayCustomAuthorizer>(jsonString)
     }
+
+    @Test
+    fun `WHEN APIGatewayProxy json THEN parse`() {
+        // https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
+        val jsonString = Resource("$RESOURCES_PATH/example-apigw-proxy-request.json").readText()
+        Json.decodeFromString<APIGatewayProxy>(jsonString)
+    }
 }

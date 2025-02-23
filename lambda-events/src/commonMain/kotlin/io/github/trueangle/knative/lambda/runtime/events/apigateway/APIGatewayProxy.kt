@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class APIGatewayProxy(
-    @SerialName("version") val version: String?,
     @SerialName("resource") val resource: String?,
     @SerialName("path") val path: String?,
     @SerialName("httpMethod") val httpMethod: String,
@@ -25,14 +24,12 @@ data class APIGatewayProxy(
         @SerialName("stage") val stage: String?,
         @SerialName("resourceId") val resourceId: String?,
         @SerialName("requestId") val requestId: String?,
-        @SerialName("operationName") val operationName: String?,
-        @SerialName("identity") val identity: RequestIdentity?,
+        @SerialName("identity") val identity: Identity?,
         @SerialName("resourcePath") val resourcePath: String?,
         @SerialName("httpMethod") val httpMethod: String,
         @SerialName("apiId") val apiId: String?,
-        @SerialName("deploymentId") val deploymentId: String?,
         @SerialName("path") val path: String?,
-        @SerialName("authorizer") val authorizer: Map<String, Map<String, String>>?,
+        @SerialName("authorizer") val authorizer: Authorizer?,
         @SerialName("extendedRequestId") val extendedRequestId: String?,
         @SerialName("requestTime") val requestTime: String?,
         @SerialName("requestTimeEpoch") val requestTimeEpoch: Long,
@@ -42,12 +39,17 @@ data class APIGatewayProxy(
     )
 
     @Serializable
-    data class RequestIdentity(
+    data class Authorizer(
+        @SerialName("claims") val claims: Map<String, String?>?,
+        @SerialName("scopes") val scopes: String?
+    )
+
+    @Serializable
+    data class Identity(
         @SerialName("cognitoIdentityPoolId") val cognitoIdentityPoolId: String?,
         @SerialName("accountId") val accountId: String?,
         @SerialName("cognitoIdentityId") val cognitoIdentityId: String?,
         @SerialName("caller") val caller: String?,
-        @SerialName("apiKey") val apiKey: String?,
         @SerialName("principalOrgId") val principalOrgId: String?,
         @SerialName("sourceIp") val sourceIp: String?,
         @SerialName("cognitoAuthenticationType") val cognitoAuthenticationType: String?,
@@ -55,6 +57,22 @@ data class APIGatewayProxy(
         @SerialName("userArn") val userArn: String?,
         @SerialName("userAgent") val userAgent: String?,
         @SerialName("user") val user: String?,
-        @SerialName("accessKey") val accessKey: String?
+        @SerialName("accessKey") val accessKey: String?,
+        @SerialName("clientCert") val clientCert: ClientCert?
+    )
+
+    @Serializable
+    data class ClientCert(
+        @SerialName("clientCertPem") val clientCertPem: String?,
+        @SerialName("subjectDN") val subjectDN: String?,
+        @SerialName("issuerDN") val issuerDN: String?,
+        @SerialName("serialNumber") val serialNumber: String?,
+        @SerialName("validity") val validity: Validity?
+    )
+
+    @Serializable
+    data class Validity(
+        @SerialName("notBefore") val notBefore: String?,
+        @SerialName("notAfter") val notAfter: String?
     )
 }
