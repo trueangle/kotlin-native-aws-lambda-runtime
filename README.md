@@ -11,8 +11,8 @@ A runtime for executing AWS Lambda Functions written in Kotlin/Native, designed 
 
 ## Supported [OS-only runtime machines](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html)
 
-- Amazon Linux 2023 (provided.al2023) with x86_64 or ARM architecture
-- Amazon Linux 2 (provided.al2) with x86_64 or ARM architecture
+- Amazon Linux 2023 (provided.al2023) with x86_64 or arm64 architecture
+- Amazon Linux 2 (provided.al2) with x86_64 or arm64 architecture
 
 ## Performance
 
@@ -36,16 +36,20 @@ See [Get started with Kotlin/Native](https://kotlinlang.org/docs/native-get-star
 Add the following to your `build.gradle` file:
 ```kotlin
 plugins {
-    id("io.github.trueangle.plugin.lambda") version "0.0.1"
+    id("io.github.trueangle.plugin.lambda") version "0.0.2"
 }
 
 kotlin {
     sourceSets {
         nativeMain.dependencies {
-            implementation("io.github.trueangle:lambda-runtime:0.0.2")
-            implementation("io.github.trueangle:lambda-events:0.0.2")
+            implementation("io.github.trueangle:lambda-runtime:$lambda_runtime_version")
+            implementation("io.github.trueangle:lambda-events:$lambda_runtime_version")
         }
     }
+}
+
+buildLambdaRelease {
+    architecture.set(Architecture.LINUX_X64) // or Architecture.LINUX_ARM64
 }
 ```
 
@@ -196,19 +200,6 @@ Log.fatal(message: T?) // Messages about serious errors that cause the applicati
 ## Troubleshooting
 
 - For Amazon Linux 2023, create a [Lambda layer](https://docs.aws.amazon.com/lambda/latest/dg/chapter-layers.html) with the libcrypt.so dependency. This library can be taken from your Linux machine or via the [Github Action workflow](https://github.com/trueangle/kotlin-native-aws-lambda-runtime/actions/workflows/libcrypt.yml).
-- Currently, only x86-64 architecture is supported by the runtime. LinuxArm64 is not supported by Kotlin Native yet, For more details, see:
-    1. The list of supported targets for Kotlin Native (
-       2.0.20-RC2) https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-native-prebuilt/2.0.20-RC2/
+- Currently, it's not possible to build ARM type target on Linux machine (use macOS instead) as Kotlin repo misses necessary metadata. For more details, see:
+    1. The list of supported targets for Kotlin Native  https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-native-prebuilt/
     2. https://youtrack.jetbrains.com/issue/KT-36871/Support-Aarch64-Linux-as-a-host-for-the-Kotlin-Native
-- If you are running the project build on MacOS you might come across a set of errors connected with
-  curl linking e.g. `ld.lld: error: undefined symbol: curl_global_init`. This means that your local
-  machine [uses different curl version from what is requested by the runtime](https://youtrack.jetbrains.com/issue/KTOR-6361/Curl-Error-linking-curl-in-linkDebugExecutableLinuxX64-on-macOS).
-  To solve that either
-  use [Gihub Actions workflow](https://github.com/trueangle/kotlin-native-aws-lambda-runtime/actions/workflows/buildLinux86_64.yml)
-  or local docker container with ubuntu 22 under the hood. Example [Dockerfile](Dockerfile) and
-  build command:
-
-```bash
-docker build -t sample .
-docker run --rm -v $(pwd):/sample -w /sample sample ./gradlew build
-```
