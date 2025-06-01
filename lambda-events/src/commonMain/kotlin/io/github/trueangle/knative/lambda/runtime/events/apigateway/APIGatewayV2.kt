@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class APIGatewayV2Request(
-    @SerialName("version") val version: String,
+    @SerialName("version") val version: String?,
     @SerialName("routeKey") val routeKey: String,
     @SerialName("rawPath") val rawPath: String,
     @SerialName("rawQueryString") val rawQueryString: String,
